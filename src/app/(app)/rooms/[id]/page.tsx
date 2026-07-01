@@ -20,10 +20,14 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 
 export default async function RoomDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ photoError?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const photoError = Number(sp.photoError ?? 0);
   const room = await prisma.room.findUnique({
     where: { id },
     include: {
@@ -38,6 +42,12 @@ export default async function RoomDetailPage({
 
   return (
     <div className="space-y-6">
+      {photoError > 0 && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          ⚠️ บันทึกห้องสำเร็จ แต่มี {photoError} รูปที่อัปโหลดไม่สำเร็จ
+          กรุณาลองอัปโหลดรูปใหม่อีกครั้งที่หน้าแก้ไขห้อง
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/" className="text-sm text-brand-600 hover:underline">

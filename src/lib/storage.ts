@@ -27,22 +27,34 @@ export async function uploadImage(file: File): Promise<string> {
   const filename = makeName(file);
 
   if (onVercelBlob()) {
-    const { put } = await import("@vercel/blob");
-    const blob = await put(`rooms/${filename}`, file, {
-      access: "public",
-      contentType: file.type || undefined,
-    });
-    return blob.url;
+    try {
+      const { put } = await import("@vercel/blob");
+      const blob = await put(`rooms/${filename}`, file, {
+        access: "public",
+        contentType: file.type || undefined,
+      });
+      return blob.url;
+    } catch (err) {
+      console.error("[storage] Vercel Blob upload failed:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`อัปโหลดรูปไม่สำเร็จ: ${message}`);
+    }
   }
 
   if (onNetlify()) {
-    const { getStore } = await import("@netlify/blobs");
-    const store = getStore(NETLIFY_STORE);
-    const bytes = await file.arrayBuffer();
-    await store.set(filename, bytes, {
-      metadata: { contentType: file.type || "application/octet-stream" },
-    });
-    return `/api/images/${filename}`;
+    try {
+      const { getStore } = await import("@netlify/blobs");
+      const store = getStore(NETLIFY_STORE);
+      const bytes = await file.arrayBuffer();
+      await store.set(filename, bytes, {
+        metadata: { contentType: file.type || "application/octet-stream" },
+      });
+      return `/api/images/${filename}`;
+    } catch (err) {
+      console.error("[storage] Netlify Blobs upload failed:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`อัปโหลดรูปไม่สำเร็จ: ${message}`);
+    }
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());

@@ -49,16 +49,32 @@ function clean(n: number | undefined) {
   return n != null && !Number.isNaN(n) ? n : null;
 }
 
-async function saveImages(formData: FormData, roomId: string, startOrder = 0) {
+async function saveImages(
+  formData: FormData,
+  roomId: string,
+  startOrder = 0,
+): Promise<{ uploaded: number; failed: number }> {
   const files = formData.getAll("images").filter((f): f is File => f instanceof File);
   let order = startOrder;
+  let uploaded = 0;
+  let failed = 0;
   for (const file of files) {
     if (!isValidImage(file)) continue;
-    const url = await uploadImage(file);
-    await prisma.roomImage.create({
-      data: { roomId, url, sortOrder: order++ },
-    });
+    try {
+      const url = await uploadImage(file);
+      await prisma.roomImage.create({
+        data: { roomId, url, sortOrder: order++ },
+      });
+      uploaded++;
+    } catch (err) {
+      failed++;
+      console.error(
+        `[saveImages] failed to upload image for room ${roomId}:`,
+        err,
+      );
+    }
   }
+  return { uploaded, failed };
 }
 
 export async function createRoom(
@@ -111,10 +127,14 @@ export async function createRoom(
     },
   });
 
-  await saveImages(formData, room.id);
+  const { failed } = await saveImages(formData, room.id);
 
   revalidatePath("/");
-  redirect(`/rooms/${room.id}`);
+  redirect(
+    failed > 0
+      ? `/rooms/${room.id}?photoError=${failed}`
+      : `/rooms/${room.id}`,
+  );
 }
 
 export async function updateRoom(
@@ -148,11 +168,11 @@ export async function updateRoom(
   });
 
   const existingCount = await prisma.roomImage.count({ where: { roomId: id } });
-  await saveImages(formData, id, existingCount);
+  const { failed } = await saveImages(formData, id, existingCount);
 
   revalidatePath("/");
   revalidatePath(`/rooms/${id}`);
-  redirect(`/rooms/${id}`);
+  redirect(failed > 0 ? `/rooms/${id}?photoError=${failed}` : `/rooms/${id}`);
 }
 
 export async function deleteRoom(id: string) {
