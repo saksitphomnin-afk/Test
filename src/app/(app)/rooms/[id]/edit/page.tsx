@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { RoomForm } from "@/components/RoomForm";
 import { updateRoom } from "@/actions/rooms";
+import { getDistinctProjectNames } from "@/lib/rooms";
 
 export default async function EditRoomPage({
   params,
@@ -9,10 +10,13 @@ export default async function EditRoomPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const room = await prisma.room.findUnique({
-    where: { id },
-    include: { images: { orderBy: { sortOrder: "asc" } } },
-  });
+  const [room, projects] = await Promise.all([
+    prisma.room.findUnique({
+      where: { id },
+      include: { images: { orderBy: { sortOrder: "asc" } } },
+    }),
+    getDistinctProjectNames(),
+  ]);
   if (!room) notFound();
 
   const action = updateRoom.bind(null, id);
@@ -31,6 +35,7 @@ export default async function EditRoomPage({
         images={room.images}
         submitLabel="บันทึกการแก้ไข"
         cancelHref={`/rooms/${id}`}
+        projects={projects}
       />
     </div>
   );

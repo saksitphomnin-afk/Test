@@ -1,7 +1,10 @@
 import { RoomForm } from "@/components/RoomForm";
 import { createRoom } from "@/actions/rooms";
+import { getDistinctProjectNames } from "@/lib/rooms";
 
-export default function NewRoomPage() {
+export default async function NewRoomPage() {
+  const projects = await getDistinctProjectNames();
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
@@ -10,7 +13,7 @@ export default function NewRoomPage() {
           กรอกรายละเอียดห้องและอัปโหลดรูปภาพ
         </p>
       </div>
-      <RoomForm action={createRoom} submitLabel="เพิ่มห้อง" />
+      <RoomForm action={createRoom} submitLabel="เพิ่มห้อง" projects={projects} />
     </div>
   );
 }

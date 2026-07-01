@@ -10,8 +10,8 @@ const sarabun = Sarabun({
 });
 
 export const metadata: Metadata = {
-  title: "Condo Stock — ระบบจัดการสต็อกห้องคอนโด",
-  description: "ระบบดูและจัดการสต็อกห้องคอนโดสำหรับทีมอสังหาริมทรัพย์",
+  title: "Place co. — ระบบจัดการสต็อกห้องคอนโด",
+  description: "ระบบดูและจัดการสต็อกห้องคอนโดสำหรับทีมอสังหาริมทรัพย์ Place co.",
 };
 
 export default function RootLayout({

@@ -20,12 +20,8 @@ export function NavBar({
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-            CS
-          </span>
-          <span className="text-base font-semibold text-gray-900">
-            Condo Stock
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Place co." className="h-8 w-auto" />
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">

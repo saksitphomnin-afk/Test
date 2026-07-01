@@ -28,12 +28,14 @@ export function RoomForm({
   images,
   submitLabel = "บันทึก",
   cancelHref = "/",
+  projects = [],
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   room?: Room;
   images?: RoomImage[];
   submitLabel?: string;
   cancelHref?: string;
+  projects?: string[];
 }) {
   const [state, formAction] = useActionState<FormState, FormData>(action, {});
 
@@ -48,10 +50,16 @@ export function RoomForm({
             <Input
               id="projectName"
               name="projectName"
+              list="projects-list"
               defaultValue={room?.projectName}
               placeholder="เช่น The Base Sukhumvit"
               required
             />
+            <datalist id="projects-list">
+              {projects.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
           </FormRow>
           <FormRow label="เลขห้อง" htmlFor="roomNumber" required>
             <Input

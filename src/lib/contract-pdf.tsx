@@ -139,7 +139,7 @@ function ContractDocument({
         </View>
 
         <Text style={styles.footer} fixed>
-          เอกสารนี้จัดทำจากระบบ Condo Stock — กรุณาตรวจสอบความถูกต้องก่อนลงนาม
+          เอกสารนี้จัดทำจากระบบ Place co. — กรุณาตรวจสอบความถูกต้องก่อนลงนาม
         </Text>
       </Page>
     </Document>

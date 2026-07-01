@@ -29,10 +29,12 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50 to-gray-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-brand-600 text-lg font-bold text-white">
-            CS
-          </div>
-          <h1 className="text-xl font-semibold text-gray-900">Condo Stock</h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Place co."
+            className="mx-auto mb-3 h-14 w-auto"
+          />
           <p className="mt-1 text-sm text-gray-500">
             ระบบจัดการสต็อกห้องคอนโด
           </p>
