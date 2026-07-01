@@ -72,6 +72,25 @@ export async function createRoom(
   }
   const d = parsed.data;
 
+  // กันเพิ่มห้องซ้ำ: โครงการ + เลขห้อง (ไม่สนตัวพิมพ์เล็ก/ใหญ่)
+  const duplicate = await prisma.room.findFirst({
+    where: {
+      projectName: { equals: d.projectName, mode: "insensitive" },
+      roomNumber: { equals: d.roomNumber, mode: "insensitive" },
+    },
+  });
+  if (duplicate) {
+    return {
+      error: `มีห้องนี้อยู่แล้วในระบบ: ${d.projectName} ห้อง ${d.roomNumber}`,
+    };
+  }
+
+  // บันทึกลง Remark เสมอว่าใครเป็นคนเพิ่มห้อง (โชว์ชื่อ + เวลาให้ทีมเห็น)
+  const initialLogs: { userId: string; text: string }[] = [
+    { userId: user.id, text: "🆕 เพิ่มห้องเข้าระบบ" },
+  ];
+  if (d.remark) initialLogs.push({ userId: user.id, text: d.remark });
+
   const room = await prisma.room.create({
     data: {
       projectName: d.projectName,
@@ -88,9 +107,7 @@ export async function createRoom(
       rentPrice: clean(d.rentPrice),
       remark: d.remark || null,
       createdById: user.id,
-      remarkLogs: d.remark
-        ? { create: { userId: user.id, text: d.remark } }
-        : undefined,
+      remarkLogs: { create: initialLogs },
     },
   });
 
