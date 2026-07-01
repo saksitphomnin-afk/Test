@@ -5,6 +5,8 @@ import type { NextAuthConfig } from "next-auth";
  * ตัว provider ที่ต้องใช้ Prisma อยู่ใน src/auth.ts
  */
 export const authConfig = {
+  // เชื่อถือ host ของแพลตฟอร์ม (Netlify/อื่น ๆ ที่ไม่ใช่ Vercel) — กัน UntrustedHost
+  trustHost: true,
   pages: { signIn: "/login" },
   session: { strategy: "jwt" },
   providers: [],
