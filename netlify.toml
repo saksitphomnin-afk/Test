@@ -1,0 +1,12 @@
+# การตั้งค่า deploy สำหรับ Netlify
+[build]
+  # รัน migration กับฐานข้อมูลก่อน แล้วค่อย build (build script ทำ prisma generate + next build)
+  command = "npx prisma migrate deploy && npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# ปลั๊กอินทางการของ Netlify สำหรับ Next.js (รองรับ App Router, Server Actions, middleware)
+# Netlify จะติดตั้งให้อัตโนมัติ
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

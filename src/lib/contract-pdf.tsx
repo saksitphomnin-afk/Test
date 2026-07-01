@@ -12,14 +12,29 @@ import type { ContractType } from "@prisma/client";
 import { contractSections, type ContractData } from "@/lib/contract";
 import { CONTRACT_META } from "@/lib/constants";
 
+// บน serverless (Netlify/Vercel) ไฟล์ใน public อาจไม่อยู่ใน bundle ของฟังก์ชัน
+// จึงโหลดฟอนต์จาก URL ของเว็บ (static asset ถูกเสิร์ฟเสมอ) เมื่อรู้ base URL
+// ส่วนตอน dev บนเครื่องใช้ path ไฟล์โดยตรง
+function siteBaseUrl(): string | undefined {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.URL) return process.env.URL; // Netlify
+  if (process.env.DEPLOY_PRIME_URL) return process.env.DEPLOY_PRIME_URL; // Netlify preview
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`; // Vercel
+  return undefined;
+}
+
+function fontSrc(file: string): string {
+  const base = siteBaseUrl();
+  return base
+    ? `${base.replace(/\/$/, "")}/fonts/${file}`
+    : path.join(process.cwd(), "public/fonts", file);
+}
+
 Font.register({
   family: "Sarabun",
   fonts: [
-    { src: path.join(process.cwd(), "public/fonts/Sarabun-Regular.ttf") },
-    {
-      src: path.join(process.cwd(), "public/fonts/Sarabun-Bold.ttf"),
-      fontWeight: "bold",
-    },
+    { src: fontSrc("Sarabun-Regular.ttf") },
+    { src: fontSrc("Sarabun-Bold.ttf"), fontWeight: "bold" },
   ],
 });
 

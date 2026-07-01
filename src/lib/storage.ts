@@ -1,25 +1,48 @@
-import { put, del } from "@vercel/blob";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 
-const hasBlob = () => !!process.env.BLOB_READ_WRITE_TOKEN;
+const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+export function isValidImage(file: File): boolean {
+  return file.size > 0 && ACCEPTED.includes(file.type);
+}
 
 function makeName(file: File) {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   return `${Date.now()}-${crypto.randomUUID()}.${ext}`;
 }
 
-/** อัปโหลดรูป: ใช้ Vercel Blob ถ้ามี token มิฉะนั้นเก็บลง public/uploads (สำหรับ dev) */
+const onVercelBlob = () => !!process.env.BLOB_READ_WRITE_TOKEN;
+const onNetlify = () => process.env.NETLIFY === "true" || !!process.env.NETLIFY_BLOBS_CONTEXT;
+const NETLIFY_STORE = "room-images";
+
+/**
+ * อัปโหลดรูป — เลือก backend อัตโนมัติ:
+ * 1) Vercel Blob (ถ้ามี BLOB_READ_WRITE_TOKEN) → คืน public URL
+ * 2) Netlify Blobs (เมื่อรันบน Netlify) → คืน /api/images/<key>
+ * 3) ระบบไฟล์ public/uploads (สำหรับ dev เครื่องตัวเอง)
+ */
 export async function uploadImage(file: File): Promise<string> {
   const filename = makeName(file);
 
-  if (hasBlob()) {
+  if (onVercelBlob()) {
+    const { put } = await import("@vercel/blob");
     const blob = await put(`rooms/${filename}`, file, {
       access: "public",
       contentType: file.type || undefined,
     });
     return blob.url;
+  }
+
+  if (onNetlify()) {
+    const { getStore } = await import("@netlify/blobs");
+    const store = getStore(NETLIFY_STORE);
+    const bytes = await file.arrayBuffer();
+    await store.set(filename, bytes, {
+      metadata: { contentType: file.type || "application/octet-stream" },
+    });
+    return `/api/images/${filename}`;
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
@@ -29,21 +52,20 @@ export async function uploadImage(file: File): Promise<string> {
   return `/uploads/${filename}`;
 }
 
-/** ลบรูปตาม url (ทำงานเงียบ ๆ ไม่ throw หากลบไม่ได้) */
+/** ลบรูปตาม url ที่เก็บไว้ (ทำงานเงียบ ๆ ไม่ throw หากลบไม่ได้) */
 export async function deleteImage(url: string): Promise<void> {
   try {
     if (url.startsWith("/uploads/")) {
       await unlink(path.join(process.cwd(), "public", url));
-    } else if (hasBlob() && url.includes("blob.vercel-storage.com")) {
+    } else if (url.startsWith("/api/images/")) {
+      const { getStore } = await import("@netlify/blobs");
+      const key = url.replace("/api/images/", "");
+      await getStore(NETLIFY_STORE).delete(key);
+    } else if (url.includes("blob.vercel-storage.com")) {
+      const { del } = await import("@vercel/blob");
       await del(url);
     }
   } catch {
     // เพิกเฉยหากไฟล์ไม่มีอยู่แล้ว
   }
-}
-
-const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-
-export function isValidImage(file: File): boolean {
-  return file.size > 0 && ACCEPTED.includes(file.type);
 }
