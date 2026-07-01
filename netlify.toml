@@ -1,7 +1,7 @@
 # การตั้งค่า deploy สำหรับ Netlify
 [build]
-  # รัน migration กับฐานข้อมูลก่อน แล้วค่อย build (build script ทำ prisma generate + next build)
-  command = "npx prisma migrate deploy && npm run build"
+  # generate client → สร้างตาราง (migrate) → สร้างบัญชีแอดมิน (seed, idempotent) → build
+  command = "npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npx next build"
 
 [build.environment]
   NODE_VERSION = "22"
