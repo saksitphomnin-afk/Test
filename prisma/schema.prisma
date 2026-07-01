@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum RoomStatus {
+  AVAILABLE // ว่าง
+  RESERVED  // จอง
+  RENTED    // เช่าแล้ว
+  SOLD      // ขายแล้ว
+}
+
+enum ListingType {
+  RENT // ให้เช่า
+  SALE // ขาย
+  BOTH // เช่า/ขาย
+}
+
+enum ContractType {
+  RENT // สัญญาเช่า
+  SALE // สัญญาซื้อขาย
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(MEMBER)
+  createdAt    DateTime @default(now())
+
+  createdRooms     Room[]      @relation("RoomCreatedBy")
+  remarkLogs       RemarkLog[]
+  createdContracts Contract[]
+}
+
+model Room {
+  id          String      @id @default(cuid())
+  projectName String // ชื่อโครงการ
+  tower       String? // ตึก/อาคาร
+  roomNumber  String // เลขห้อง
+  floor       String? // ชั้น
+  sizeSqm     Float? // ขนาด (ตร.ม.)
+  roomType    String? // ประเภทห้อง เช่น 1 Bedroom
+  ownerName   String // ชื่อเจ้าของ
+  ownerPhone  String // เบอร์โทรเจ้าของ
+  listingType ListingType @default(RENT)
+  salePrice   Float? // ราคาขาย
+  rentPrice   Float? // ค่าเช่า/เดือน
+  status      RoomStatus  @default(AVAILABLE)
+  remark      String? // Remark ปัจจุบัน (ล่าสุด)
+
+  createdById String
+  createdBy   User   @relation("RoomCreatedBy", fields: [createdById], references: [id])
+
+  images     RoomImage[]
+  remarkLogs RemarkLog[]
+  contracts  Contract[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([projectName])
+}
+
+model RoomImage {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([roomId])
+}
+
+model RemarkLog {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([roomId])
+}
+
+model Contract {
+  id          String       @id @default(cuid())
+  roomId      String
+  room        Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  type        ContractType
+  data        Json // ค่าฟิลด์ทั้งหมดในฟอร์มสัญญา
+  createdById String
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([roomId])
+}
