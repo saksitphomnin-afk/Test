@@ -85,3 +85,42 @@ export function formatRelativeTime(date: Date | string): string {
     dateStyle: "medium",
   }).format(d);
 }
+
+/** ช่วงตัวเลขสำหรับตัวกรอง dropdown — key ใช้เป็นค่าใน URL, gte/lte ใช้ทำ where clause */
+export type NumberRange = {
+  key: string;
+  label: string;
+  gte?: number;
+  lte?: number;
+};
+
+/** ช่วงขนาดห้อง (ตร.ม.) */
+export const SIZE_RANGES: NumberRange[] = [
+  { key: "0-30", label: "ไม่เกิน 30 ตร.ม.", lte: 30 },
+  { key: "30-45", label: "30 – 45 ตร.ม.", gte: 30, lte: 45 },
+  { key: "45-60", label: "45 – 60 ตร.ม.", gte: 45, lte: 60 },
+  { key: "60-", label: "60 ตร.ม. ขึ้นไป", gte: 60 },
+];
+
+/** ช่วงค่าเช่า/เดือน (บาท) — ราคาเป็นจำนวนเต็ม ขอบเขตไม่ทับกัน */
+export const RENT_RANGES: NumberRange[] = [
+  { key: "0-15000", label: "ไม่เกิน 15,000", lte: 15000 },
+  { key: "15000-25000", label: "15,001 – 25,000", gte: 15001, lte: 25000 },
+  { key: "25000-40000", label: "25,001 – 40,000", gte: 25001, lte: 40000 },
+  { key: "40000-70000", label: "40,001 – 70,000", gte: 40001, lte: 70000 },
+  { key: "70000-", label: "70,000 ขึ้นไป", gte: 70001 },
+];
+
+/** แปลง key ของช่วง → เงื่อนไข Prisma { gte?, lte? } (คืน undefined ถ้า key ไม่ตรง) */
+export function rangeToFilter(
+  ranges: NumberRange[],
+  key?: string,
+): { gte?: number; lte?: number } | undefined {
+  if (!key) return undefined;
+  const r = ranges.find((x) => x.key === key);
+  if (!r) return undefined;
+  const out: { gte?: number; lte?: number } = {};
+  if (r.gte != null) out.gte = r.gte;
+  if (r.lte != null) out.lte = r.lte;
+  return out;
+}

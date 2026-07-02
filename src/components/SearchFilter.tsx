@@ -2,36 +2,53 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { STATUS_ORDER, STATUS_META } from "@/lib/constants";
+import {
+  STATUS_ORDER,
+  STATUS_META,
+  SIZE_RANGES,
+  RENT_RANGES,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-export function SearchFilter({ projects = [] }: { projects?: string[] }) {
+type FilterPatch = {
+  q?: string;
+  status?: string;
+  project?: string;
+  type?: string;
+  size?: string;
+  price?: string;
+};
+
+export function SearchFilter({
+  projects = [],
+  roomTypes = [],
+}: {
+  projects?: string[];
+  roomTypes?: string[];
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [q, setQ] = useState(params.get("q") ?? "");
   const activeStatus = params.get("status") ?? "";
   const activeProject = params.get("project") ?? "";
+  const activeType = params.get("type") ?? "";
+  const activeSize = params.get("size") ?? "";
+  const activePrice = params.get("price") ?? "";
 
-  function apply(next: { q?: string; status?: string; project?: string }) {
+  function apply(next: FilterPatch) {
     const sp = new URLSearchParams(params.toString());
-    if (next.q !== undefined) {
-      if (next.q) sp.set("q", next.q);
-      else sp.delete("q");
-    }
-    if (next.status !== undefined) {
-      if (next.status) sp.set("status", next.status);
-      else sp.delete("status");
-    }
-    if (next.project !== undefined) {
-      if (next.project) sp.set("project", next.project);
-      else sp.delete("project");
+    for (const key of ["q", "status", "project", "type", "size", "price"] as const) {
+      const val = next[key];
+      if (val === undefined) continue;
+      if (val) sp.set(key, val);
+      else sp.delete(key);
     }
     startTransition(() => router.push(`/?${sp.toString()}`));
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -55,11 +72,11 @@ export function SearchFilter({ projects = [] }: { projects?: string[] }) {
         />
       </form>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <PillSelect
           value={activeProject}
           onChange={(v) => apply({ project: v })}
-          className="flex-1 sm:w-48 sm:flex-none"
+          className="min-w-40 flex-1 sm:flex-none"
         >
           <option value="">ทุกโครงการ</option>
           {projects.map((p) => (
@@ -70,9 +87,48 @@ export function SearchFilter({ projects = [] }: { projects?: string[] }) {
         </PillSelect>
 
         <PillSelect
+          value={activeType}
+          onChange={(v) => apply({ type: v })}
+          className="min-w-36 flex-1 sm:flex-none"
+        >
+          <option value="">ทุกประเภทห้อง</option>
+          {roomTypes.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </PillSelect>
+
+        <PillSelect
+          value={activeSize}
+          onChange={(v) => apply({ size: v })}
+          className="min-w-36 flex-1 sm:flex-none"
+        >
+          <option value="">ทุกขนาด</option>
+          {SIZE_RANGES.map((r) => (
+            <option key={r.key} value={r.key}>
+              {r.label}
+            </option>
+          ))}
+        </PillSelect>
+
+        <PillSelect
+          value={activePrice}
+          onChange={(v) => apply({ price: v })}
+          className="min-w-40 flex-1 sm:flex-none"
+        >
+          <option value="">ทุกช่วงค่าเช่า</option>
+          {RENT_RANGES.map((r) => (
+            <option key={r.key} value={r.key}>
+              {r.label}
+            </option>
+          ))}
+        </PillSelect>
+
+        <PillSelect
           value={activeStatus}
           onChange={(v) => apply({ status: v })}
-          className="flex-1 sm:w-40 sm:flex-none"
+          className="min-w-32 flex-1 sm:flex-none"
         >
           <option value="">ทุกสถานะ</option>
           {STATUS_ORDER.map((s) => (
