@@ -12,9 +12,17 @@ import {
   type ContractData,
 } from "@/lib/contract";
 import { CONTRACT_META } from "@/lib/constants";
-import { Input, Textarea, FormRow } from "@/components/ui/Field";
+import { Input, Textarea, FormRow, Select } from "@/components/ui/Field";
 import { buttonClasses, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+
+type PdfLang = "TH" | "EN" | "BOTH";
+
+const LANG_OPTIONS: { value: PdfLang; label: string }[] = [
+  { value: "BOTH", label: "ไทย + อังกฤษ" },
+  { value: "TH", label: "ไทย" },
+  { value: "EN", label: "อังกฤษ (English)" },
+];
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -43,6 +51,7 @@ export function ContractForm({
   const [type, setType] = useState<ContractType>("RENT");
   const [savedIds, setSavedIds] =
     useState<Partial<Record<ContractType, string>>>(savedContractIds);
+  const [pdfLang, setPdfLang] = useState<PdfLang>("BOTH");
 
   const [state, formAction] = useActionState<ContractFormState, FormData>(
     saveContract.bind(null, roomId, type),
@@ -129,9 +138,25 @@ export function ContractForm({
           <LinkButton href={`/rooms/${roomId}`} variant="secondary">
             กลับ
           </LinkButton>
+          {currentId && type === "RENT" && (
+            <Select
+              value={pdfLang}
+              onChange={(e) => setPdfLang(e.target.value as PdfLang)}
+              className="w-auto"
+              aria-label="ภาษาของสัญญา PDF"
+            >
+              {LANG_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          )}
           {currentId && (
             <a
-              href={`/api/contract/${currentId}/pdf`}
+              href={`/api/contract/${currentId}/pdf${
+                type === "RENT" ? `?lang=${pdfLang}` : ""
+              }`}
               target="_blank"
               rel="noopener noreferrer"
               className={buttonClasses("secondary", "md")}

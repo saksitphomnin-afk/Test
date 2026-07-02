@@ -1,13 +1,18 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { renderContractPdf } from "@/lib/contract-pdf";
+import { renderContractPdf, type Lang } from "@/lib/contract-pdf";
 import type { ContractData } from "@/lib/contract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function parseLang(value: string | null): Lang {
+  const v = (value ?? "").toUpperCase();
+  return v === "TH" || v === "EN" || v === "BOTH" ? v : "BOTH";
+}
+
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
@@ -21,15 +26,19 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const lang = parseLang(searchParams.get("lang"));
+
   const buffer = await renderContractPdf(
     contract.type,
     contract.data as ContractData,
+    lang,
   );
 
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="contract-${contract.type.toLowerCase()}-${id}.pdf"`,
+      "Content-Disposition": `attachment; filename="contract-${contract.type.toLowerCase()}-${lang.toLowerCase()}-${id}.pdf"`,
     },
   });
 }
