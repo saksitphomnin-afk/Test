@@ -44,6 +44,16 @@ export const CONTRACT_META: Record<ContractType, { label: string }> = {
   SALE: { label: "สัญญาซื้อขาย" },
 };
 
+/** ตัวเลือกประเภทห้องมาตรฐาน (กันพิมพ์ชื่อไม่ตรงกัน) — "อื่นๆ" ให้ระบุเองได้ */
+export const ROOM_TYPE_OPTIONS = [
+  "Studio",
+  "1Bedroom 1Bathroom",
+  "1Bedroom plus",
+  "2Bedroom 2Bathroom",
+  "2Bedroom 1Bathroom",
+  "Penthouse",
+] as const;
+
 export function formatBaht(value?: number | null): string {
   if (value == null) return "-";
   return new Intl.NumberFormat("th-TH", {

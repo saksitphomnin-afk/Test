@@ -6,6 +6,7 @@ import { Input, Select, Textarea, FormRow } from "@/components/ui/Field";
 import { buttonClasses, LinkButton } from "@/components/ui/Button";
 import { STATUS_ORDER, STATUS_META, LISTING_META } from "@/lib/constants";
 import { ExistingImages } from "@/components/ExistingImages";
+import { RoomTypeSelect } from "@/components/RoomTypeSelect";
 import { compressImages } from "@/lib/compressImage";
 
 function SubmitButton({
@@ -161,12 +162,7 @@ export function RoomForm({
             />
           </FormRow>
           <FormRow label="ประเภทห้อง" htmlFor="roomType">
-            <Input
-              id="roomType"
-              name="roomType"
-              defaultValue={room?.roomType ?? ""}
-              placeholder="เช่น 1 Bedroom"
-            />
+            <RoomTypeSelect defaultValue={room?.roomType} />
           </FormRow>
         </div>
       </section>
