@@ -28,6 +28,36 @@ function SubmitButton({
   );
 }
 
+// ใส่ลูกน้ำคั่นหลักพันให้ตัวเลข เช่น 26500 -> "26,500" (ฝั่ง server ลอกลูกน้ำออกก่อนบันทึก)
+function withCommas(value: string): string {
+  const digits = value.replace(/[^\d]/g, "");
+  return digits ? Number(digits).toLocaleString("en-US") : "";
+}
+
+function MoneyInput({
+  id,
+  name,
+  defaultValue,
+}: {
+  id: string;
+  name: string;
+  defaultValue: number | null;
+}) {
+  const [value, setValue] = useState(
+    defaultValue != null ? withCommas(String(defaultValue)) : "",
+  );
+  return (
+    <Input
+      id={id}
+      name={name}
+      inputMode="numeric"
+      value={value}
+      onChange={(e) => setValue(withCommas(e.target.value))}
+      placeholder="เช่น 26,500"
+    />
+  );
+}
+
 export function RoomForm({
   apiUrl,
   method = "POST",
@@ -163,6 +193,14 @@ export function RoomForm({
               required
             />
           </FormRow>
+          <FormRow label="Line ID เจ้าของ" htmlFor="ownerLineId">
+            <Input
+              id="ownerLineId"
+              name="ownerLineId"
+              defaultValue={room?.ownerLineId ?? ""}
+              placeholder="เช่น @placeco หรือ line id"
+            />
+          </FormRow>
           <FormRow label="ประเภทประกาศ" htmlFor="listingType">
             <Select
               id="listingType"
@@ -188,21 +226,17 @@ export function RoomForm({
             </Select>
           </FormRow>
           <FormRow label="ราคาขาย (บาท)" htmlFor="salePrice">
-            <Input
+            <MoneyInput
               id="salePrice"
               name="salePrice"
-              type="number"
-              step="1"
-              defaultValue={room?.salePrice ?? ""}
+              defaultValue={room?.salePrice ?? null}
             />
           </FormRow>
           <FormRow label="ค่าเช่า/เดือน (บาท)" htmlFor="rentPrice">
-            <Input
+            <MoneyInput
               id="rentPrice"
               name="rentPrice"
-              type="number"
-              step="1"
-              defaultValue={room?.rentPrice ?? ""}
+              defaultValue={room?.rentPrice ?? null}
             />
           </FormRow>
         </div>

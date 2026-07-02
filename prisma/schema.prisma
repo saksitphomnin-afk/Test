@@ -55,6 +55,7 @@ model Room {
   roomType    String? // ประเภทห้อง เช่น 1 Bedroom
   ownerName   String // ชื่อเจ้าของ
   ownerPhone  String // เบอร์โทรเจ้าของ
+  ownerLineId String? // Line ID เจ้าของ
   listingType ListingType @default(RENT)
   salePrice   Float? // ราคาขาย
   rentPrice   Float? // ค่าเช่า/เดือน

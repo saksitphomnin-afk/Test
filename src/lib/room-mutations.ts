@@ -11,6 +11,7 @@ export const roomSchema = z.object({
   roomType: z.string().optional(),
   ownerName: z.string().min(1, "กรุณากรอกชื่อเจ้าของ"),
   ownerPhone: z.string().min(1, "กรุณากรอกเบอร์โทรเจ้าของ"),
+  ownerLineId: z.string().optional(),
   listingType: z.enum(["RENT", "SALE", "BOTH"]),
   status: z.enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD"]),
   salePrice: z.coerce.number().nonnegative().optional().or(z.literal(NaN)),
@@ -18,20 +19,29 @@ export const roomSchema = z.object({
   remark: z.string().optional(),
 });
 
+// ช่องราคาในฟอร์มใส่ลูกน้ำคั่นหลักพัน (เช่น "26,500") — ต้องลอกลูกน้ำออกก่อน
+// ให้ zod แปลงเป็นตัวเลข ไม่งั้น Number("26,500") = NaN
+function stripCommas(v: FormDataEntryValue | null): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const cleaned = v.replace(/,/g, "").trim();
+  return cleaned || undefined;
+}
+
 export function parseRoom(formData: FormData) {
   const raw = {
     projectName: formData.get("projectName"),
     tower: formData.get("tower"),
     roomNumber: formData.get("roomNumber"),
     floor: formData.get("floor"),
-    sizeSqm: formData.get("sizeSqm") || undefined,
+    sizeSqm: stripCommas(formData.get("sizeSqm")),
     roomType: formData.get("roomType"),
     ownerName: formData.get("ownerName"),
     ownerPhone: formData.get("ownerPhone"),
+    ownerLineId: formData.get("ownerLineId") || undefined,
     listingType: formData.get("listingType"),
     status: formData.get("status"),
-    salePrice: formData.get("salePrice") || undefined,
-    rentPrice: formData.get("rentPrice") || undefined,
+    salePrice: stripCommas(formData.get("salePrice")),
+    rentPrice: stripCommas(formData.get("rentPrice")),
     remark: formData.get("remark") || undefined,
   };
   return roomSchema.safeParse(raw);

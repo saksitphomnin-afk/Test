@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       roomType: d.roomType || null,
       ownerName: d.ownerName,
       ownerPhone: d.ownerPhone,
+      ownerLineId: d.ownerLineId || null,
       listingType: d.listingType,
       status: d.status,
       salePrice: clean(d.salePrice),

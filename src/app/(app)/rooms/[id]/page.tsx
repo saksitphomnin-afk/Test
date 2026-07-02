@@ -110,6 +110,7 @@ export default async function RoomDetailPage({
             </h2>
             <InfoRow label="ชื่อเจ้าของ" value={room.ownerName} />
             <InfoRow label="เบอร์โทร" value={room.ownerPhone} />
+            <InfoRow label="Line ID" value={room.ownerLineId} />
             <a
               href={`tel:${room.ownerPhone}`}
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:underline"
