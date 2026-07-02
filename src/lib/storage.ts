@@ -1,4 +1,4 @@
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { writeFile, mkdir, unlink, readFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 
@@ -79,5 +79,26 @@ export async function deleteImage(url: string): Promise<void> {
     }
   } catch {
     // เพิกเฉยหากไฟล์ไม่มีอยู่แล้ว
+  }
+}
+
+/** อ่านข้อมูลรูปดิบตาม url ที่เก็บไว้ (รองรับทุก backend) สำหรับรวมเป็น zip */
+export async function getImageBytes(url: string): Promise<Buffer | null> {
+  try {
+    if (url.startsWith("/uploads/")) {
+      return await readFile(path.join(process.cwd(), "public", url));
+    }
+    if (url.startsWith("/api/images/")) {
+      const { getStore } = await import("@netlify/blobs");
+      const key = url.replace("/api/images/", "");
+      const data = await getStore(NETLIFY_STORE).get(key, { type: "arrayBuffer" });
+      return data ? Buffer.from(data) : null;
+    }
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch (err) {
+    console.error(`[getImageBytes] failed to read ${url}:`, err);
+    return null;
   }
 }
