@@ -60,3 +60,28 @@ export function formatDateTime(date: Date | string): string {
     timeStyle: "short",
   }).format(d);
 }
+
+/**
+ * Formats a date as a short Thai relative-time string, e.g. "2 ชั่วโมงที่แล้ว".
+ * Falls back to a plain date for anything older than ~a month.
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const diffMs = Date.now() - d.getTime();
+  const diffSec = Math.round(diffMs / 1000);
+
+  if (diffSec < 60) return "เมื่อสักครู่";
+
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+
+  const diffHour = Math.round(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
+
+  const diffDay = Math.round(diffHour / 24);
+  if (diffDay < 30) return `${diffDay} วันที่แล้ว`;
+
+  return new Intl.DateTimeFormat("th-TH", {
+    dateStyle: "medium",
+  }).format(d);
+}

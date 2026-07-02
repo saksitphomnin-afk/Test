@@ -31,84 +31,112 @@ export function SearchFilter({ projects = [] }: { projects?: string[] }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            apply({ q });
-          }}
-          className="flex flex-1 gap-2"
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          apply({ q });
+        }}
+        className="relative flex-1"
+      >
+        <button
+          type="submit"
+          disabled={isPending}
+          aria-label="ค้นหา"
+          className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 hover:text-brand-600"
         >
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="ค้นหา โครงการ / เลขห้อง / เจ้าของ / เบอร์โทร"
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
-          <button
-            type="submit"
-            disabled={isPending}
-            className="shrink-0 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            ค้นหา
-          </button>
-        </form>
+          <SearchIcon />
+        </button>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="ค้นหา โครงการ / เลขห้อง / เจ้าของ / เบอร์โทร"
+          className="w-full rounded-full border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+        />
+      </form>
 
-        <select
+      <div className="flex gap-2">
+        <PillSelect
           value={activeProject}
-          onChange={(e) => apply({ project: e.target.value })}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 sm:w-64"
+          onChange={(v) => apply({ project: v })}
+          className="flex-1 sm:w-48 sm:flex-none"
         >
-          <option value="">ทั้งหมด (คอนโด)</option>
+          <option value="">ทุกโครงการ</option>
           {projects.map((p) => (
             <option key={p} value={p}>
               {p}
             </option>
           ))}
-        </select>
-      </div>
+        </PillSelect>
 
-      <div className="flex flex-wrap gap-2">
-        <FilterChip
-          label="ทั้งหมด"
-          active={activeStatus === ""}
-          onClick={() => apply({ status: "" })}
-        />
-        {STATUS_ORDER.map((s) => (
-          <FilterChip
-            key={s}
-            label={STATUS_META[s].label}
-            active={activeStatus === s}
-            onClick={() => apply({ status: activeStatus === s ? "" : s })}
-          />
-        ))}
+        <PillSelect
+          value={activeStatus}
+          onChange={(v) => apply({ status: v })}
+          className="flex-1 sm:w-40 sm:flex-none"
+        >
+          <option value="">ทุกสถานะ</option>
+          {STATUS_ORDER.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_META[s].label}
+            </option>
+          ))}
+        </PillSelect>
       </div>
     </div>
   );
 }
 
-function FilterChip({
-  label,
-  active,
-  onClick,
+function PillSelect({
+  value,
+  onChange,
+  children,
+  className,
 }: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-inset transition",
-        active
-          ? "bg-brand-600 text-white ring-brand-600"
-          : "bg-white text-gray-600 ring-gray-300 hover:bg-gray-50",
-      )}
-    >
-      {label}
-    </button>
+    <div className={cn("relative", className)}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-full border border-gray-300 bg-white py-2 pl-3.5 pr-8 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+      >
+        {children}
+      </select>
+      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+        <ChevronIcon />
+      </span>
+    </div>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="m17 17-3.5-3.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+      <path
+        d="m5 7.5 5 5 5-5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

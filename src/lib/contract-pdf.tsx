@@ -11,7 +11,7 @@ import {
 import type { Style } from "@react-pdf/types";
 import type { ContractType } from "@prisma/client";
 import { contractSections, type ContractData } from "@/lib/contract";
-import { LEASE_CLAUSES, thaiDate, engDate, bahtNumber, type Lang } from "@/lib/lease-clauses";
+import { LEASE_CLAUSES, thaiDate, engDate, bahtNumber, or, type Lang } from "@/lib/lease-clauses";
 import { CONTRACT_META } from "@/lib/constants";
 
 export type { Lang };
@@ -110,7 +110,12 @@ const styles = StyleSheet.create({
   fieldLine: { flexDirection: "row", marginBottom: 2 },
   fieldLabel: { color: "#6b7280", fontSize: 9.5 },
   fieldValue: { fontSize: 10.5 },
+  proseParaEn: { marginBottom: 8, fontSize: 10.5 },
+  proseParaTh: { marginBottom: 10, fontSize: 10.5 },
+  bankBlock: { marginLeft: 14, marginTop: 2, marginBottom: 8 },
 });
+
+const valueRunStyle: Style = { fontWeight: "bold", textDecoration: "underline" };
 
 // ==================== SALE / GENERIC CONTRACT (unchanged behaviour) ====================
 
@@ -216,6 +221,76 @@ function WrappedParagraph({
   );
 }
 
+// Variant of WrappedParagraph for "flowing prose with inline filled-in values" paragraphs
+// (parties recital, leased-premises recital). Segments are plain-text chunks or
+// bold+underlined "value" chunks; every chunk is still split on spaces into its own
+// nested <Text> run so the anti-clipping fix above applies here too.
+interface ProseSegment {
+  text: string;
+  value?: boolean;
+}
+
+function ProseParagraph({
+  segments,
+  style,
+}: {
+  segments: ProseSegment[];
+  style: Style;
+}) {
+  // Concatenate all segment text into one string while remembering, per character,
+  // which segment (and therefore whether it's a "value" span) it came from. Then
+  // re-tokenize the whole string on spaces so punctuation glued to a value (e.g. "Doe,")
+  // doesn't produce an extra bare token with wrong spacing.
+  // A join space is inserted between consecutive segments unless the next segment
+  // starts with punctuation meant to attach directly to the previous word (e.g. a
+  // segment written as ", residing at" for the English recital's comma-joined clauses).
+  let combined = "";
+  const segmentIndexByChar: number[] = [];
+  segments.forEach((seg, segIdx) => {
+    if (segIdx > 0 && !/^[,;:.)]/.test(seg.text)) {
+      combined += " ";
+      segmentIndexByChar.push(-1);
+    }
+    for (const ch of seg.text) {
+      combined += ch;
+      segmentIndexByChar.push(segIdx);
+    }
+  });
+
+  const tokens: { token: string; value: boolean }[] = [];
+  const pushToken = (start: number, end: number) => {
+    if (end <= start) return;
+    const token = combined.slice(start, end);
+    let isValue = false;
+    for (let i = start; i < end; i++) {
+      if (segments[segmentIndexByChar[i]]?.value) {
+        isValue = true;
+        break;
+      }
+    }
+    tokens.push({ token, value: isValue });
+  };
+  let tokenStart = 0;
+  for (let i = 0; i < combined.length; i++) {
+    if (combined[i] === " ") {
+      pushToken(tokenStart, i);
+      tokenStart = i + 1;
+    }
+  }
+  pushToken(tokenStart, combined.length);
+
+  return (
+    <Text style={style}>
+      {tokens.map((t, i) => (
+        <Text key={i} style={t.value ? valueRunStyle : undefined}>
+          {t.token}
+          {i < tokens.length - 1 ? " " : ""}
+        </Text>
+      ))}
+    </Text>
+  );
+}
+
 function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang }) {
   const showEn = lang === "EN" || lang === "BOTH";
   const showTh = lang === "TH" || lang === "BOTH";
@@ -243,75 +318,70 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
           )}
         </Text>
 
-        {/* Parties */}
+        {/* Parties — flowing prose recital with bold+underlined filled-in values */}
         <View style={styles.partyBlock} wrap={false}>
           <Text style={styles.clauseTitle}>
-            {showEn && showTh
-              ? "LESSOR / ผู้ให้เช่า"
-              : showEn
-                ? "LESSOR"
-                : "ผู้ให้เช่า"}
+            {showEn && showTh ? "PARTIES / คู่สัญญา" : showEn ? "PARTIES" : "คู่สัญญา"}
           </Text>
           {showEn && (
-            <>
-              <FieldLine label="Name" value={data.lessorName} />
-              <FieldLine
-                label="National ID / Passport / Juristic person reg. no."
-                value={data.lessorIdOrPassport}
-              />
-              <FieldLine label="Nationality" value={data.lessorNationality} />
-              <FieldLine label="Address" value={data.lessorAddress} />
-              <FieldLine label="Phone" value={data.lessorPhone} />
-            </>
+            <ProseParagraph
+              style={styles.proseParaEn}
+              segments={[
+                { text: "This agreement is made between" },
+                { text: or(data.lessorName), value: true },
+                { text: ", residing at" },
+                { text: or(data.lessorAddress), value: true },
+                { text: ", national ID / passport / juristic person registration number" },
+                { text: or(data.lessorIdOrPassport), value: true },
+                { text: ", nationality" },
+                { text: or(data.lessorNationality), value: true },
+                { text: ", telephone number" },
+                { text: or(data.lessorPhone), value: true },
+                { text: ', hereinafter referred to as the "Lessor", of the one part, and' },
+                { text: or(data.tenantName), value: true },
+                { text: ", residing at" },
+                { text: or(data.tenantAddress), value: true },
+                { text: ", national ID / passport / juristic person registration number" },
+                { text: or(data.tenantIdOrPassport), value: true },
+                { text: ", nationality" },
+                { text: or(data.tenantNationality), value: true },
+                { text: ", telephone number" },
+                { text: or(data.tenantPhone), value: true },
+                { text: ', hereinafter referred to as the "Tenant", of the other part.' },
+              ]}
+            />
           )}
           {showTh && (
-            <>
-              <FieldLine label="ชื่อ-นามสกุล" value={data.lessorName} />
-              <FieldLine
-                label="เลขบัตรประชาชน/พาสปอร์ต/เลขทะเบียนนิติบุคคล"
-                value={data.lessorIdOrPassport}
-              />
-              <FieldLine label="สัญชาติ" value={data.lessorNationality} />
-              <FieldLine label="ที่อยู่" value={data.lessorAddress} />
-              <FieldLine label="เบอร์โทร" value={data.lessorPhone} />
-            </>
+            <ProseParagraph
+              style={styles.proseParaTh}
+              segments={[
+                { text: "สัญญาฉบับนี้ทำขึ้นระหว่าง" },
+                { text: or(data.lessorName), value: true },
+                { text: "ที่อยู่" },
+                { text: or(data.lessorAddress), value: true },
+                { text: "เลขบัตรประชาชน/หนังสือเดินทาง/เลขทะเบียนนิติบุคคล" },
+                { text: or(data.lessorIdOrPassport), value: true },
+                { text: "สัญชาติ" },
+                { text: or(data.lessorNationality), value: true },
+                { text: "เบอร์โทรศัพท์" },
+                { text: or(data.lessorPhone), value: true },
+                { text: 'ซึ่งต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่ง กับ' },
+                { text: or(data.tenantName), value: true },
+                { text: "ที่อยู่" },
+                { text: or(data.tenantAddress), value: true },
+                { text: "เลขบัตรประชาชน/หนังสือเดินทาง/เลขทะเบียนนิติบุคคล" },
+                { text: or(data.tenantIdOrPassport), value: true },
+                { text: "สัญชาติ" },
+                { text: or(data.tenantNationality), value: true },
+                { text: "เบอร์โทรศัพท์" },
+                { text: or(data.tenantPhone), value: true },
+                { text: 'ซึ่งต่อไปในสัญญานี้เรียกว่า "ผู้เช่า" อีกฝ่ายหนึ่ง' },
+              ]}
+            />
           )}
         </View>
 
-        <View style={styles.partyBlock} wrap={false}>
-          <Text style={styles.clauseTitle}>
-            {showEn && showTh
-              ? "TENANT / ผู้เช่า"
-              : showEn
-                ? "TENANT"
-                : "ผู้เช่า"}
-          </Text>
-          {showEn && (
-            <>
-              <FieldLine label="Name" value={data.tenantName} />
-              <FieldLine
-                label="National ID / Passport / Juristic person reg. no."
-                value={data.tenantIdOrPassport}
-              />
-              <FieldLine label="Nationality" value={data.tenantNationality} />
-              <FieldLine label="Address" value={data.tenantAddress} />
-              <FieldLine label="Phone" value={data.tenantPhone} />
-            </>
-          )}
-          {showTh && (
-            <>
-              <FieldLine label="ชื่อ-นามสกุล" value={data.tenantName} />
-              <FieldLine
-                label="เลขบัตรประชาชน/พาสปอร์ต/เลขทะเบียนนิติบุคคล"
-                value={data.tenantIdOrPassport}
-              />
-              <FieldLine label="สัญชาติ" value={data.tenantNationality} />
-              <FieldLine label="ที่อยู่" value={data.tenantAddress} />
-              <FieldLine label="เบอร์โทร" value={data.tenantPhone} />
-            </>
-          )}
-        </View>
-
+        {/* Leased Premises — flowing prose recital */}
         <View style={styles.partyBlock} wrap={false}>
           <Text style={styles.clauseTitle}>
             {showEn && showTh
@@ -321,24 +391,44 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
                 : "ทรัพย์สินที่เช่า"}
           </Text>
           {showEn && (
-            <>
-              <FieldLine label="Project" value={data.propertyProject} />
-              <FieldLine label="Building" value={data.propertyBuilding} />
-              <FieldLine label="Unit No." value={data.propertyUnitNo} />
-              <FieldLine label="Floor" value={data.propertyFloor} />
-              <FieldLine label="Size (sqm)" value={data.propertySize} />
-              <FieldLine label="Address" value={data.propertyAddress} />
-            </>
+            <ProseParagraph
+              style={styles.proseParaEn}
+              segments={[
+                { text: "Whereas the Lessor is the owner of a unit in the condominium project of" },
+                { text: or(data.propertyProject), value: true },
+                { text: ", Building" },
+                { text: or(data.propertyBuilding), value: true },
+                { text: ", Room No." },
+                { text: or(data.propertyUnitNo), value: true },
+                { text: ", Floor" },
+                { text: or(data.propertyFloor), value: true },
+                { text: ", with a size of approximately" },
+                { text: or(data.propertySize), value: true },
+                { text: "square metres, located at" },
+                { text: or(data.propertyAddress), value: true },
+                { text: ', hereinafter referred to as the "Leased premises".' },
+              ]}
+            />
           )}
           {showTh && (
-            <>
-              <FieldLine label="โครงการ" value={data.propertyProject} />
-              <FieldLine label="อาคาร/ตึก" value={data.propertyBuilding} />
-              <FieldLine label="เลขห้อง" value={data.propertyUnitNo} />
-              <FieldLine label="ชั้น" value={data.propertyFloor} />
-              <FieldLine label="ขนาด (ตร.ม.)" value={data.propertySize} />
-              <FieldLine label="ที่ตั้ง" value={data.propertyAddress} />
-            </>
+            <ProseParagraph
+              style={styles.proseParaTh}
+              segments={[
+                { text: "โดยผู้ให้เช่าเป็นเจ้าของกรรมสิทธิ์ห้องชุดในโครงการ" },
+                { text: or(data.propertyProject), value: true },
+                { text: "อาคาร/ตึก" },
+                { text: or(data.propertyBuilding), value: true },
+                { text: "เลขห้อง" },
+                { text: or(data.propertyUnitNo), value: true },
+                { text: "ชั้น" },
+                { text: or(data.propertyFloor), value: true },
+                { text: "ขนาดพื้นที่ประมาณ" },
+                { text: or(data.propertySize), value: true },
+                { text: "ตารางเมตร ตั้งอยู่ที่" },
+                { text: or(data.propertyAddress), value: true },
+                { text: 'ซึ่งต่อไปในสัญญานี้เรียกว่า "ทรัพย์สินที่เช่า"' },
+              ]}
+            />
           )}
         </View>
 
@@ -359,6 +449,13 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
         {LEASE_CLAUSES.map((clause) => {
           const enParas = clause.bodyEn(data);
           const thParas = clause.bodyTh(data);
+          const isRental = clause.id === "rental";
+          const hasBankInfo = Boolean(
+            (data.bankName && data.bankName.trim()) ||
+              (data.bankBranch && data.bankBranch.trim()) ||
+              (data.bankAccountNumber && data.bankAccountNumber.trim()) ||
+              (data.bankAccountName && data.bankAccountName.trim()),
+          );
           return (
             <View key={clause.id} style={styles.clauseBlock}>
               <Text style={styles.clauseTitle}>
@@ -370,13 +467,39 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
                     : clause.titleTh}
               </Text>
               {showEn &&
-                enParas.map((p, i) => (
-                  <WrappedParagraph key={`en-${i}`} style={styles.clauseParaEn} text={p} />
-                ))}
+                enParas.flatMap((p, i) => {
+                  const nodes = [
+                    <WrappedParagraph key={`en-${i}`} style={styles.clauseParaEn} text={p} />,
+                  ];
+                  if (isRental && i === 0 && hasBankInfo) {
+                    nodes.push(
+                      <View key="en-bank" style={styles.bankBlock}>
+                        <FieldLine label="Bank" value={data.bankName} />
+                        <FieldLine label="Branch" value={data.bankBranch} />
+                        <FieldLine label="Account Number" value={data.bankAccountNumber} />
+                        <FieldLine label="Account Name" value={data.bankAccountName} />
+                      </View>,
+                    );
+                  }
+                  return nodes;
+                })}
               {showTh &&
-                thParas.map((p, i) => (
-                  <WrappedParagraph key={`th-${i}`} style={styles.clauseParaTh} text={p} />
-                ))}
+                thParas.flatMap((p, i) => {
+                  const nodes = [
+                    <WrappedParagraph key={`th-${i}`} style={styles.clauseParaTh} text={p} />,
+                  ];
+                  if (isRental && i === 0 && hasBankInfo) {
+                    nodes.push(
+                      <View key="th-bank" style={styles.bankBlock}>
+                        <FieldLine label="ชื่อธนาคาร" value={data.bankName} />
+                        <FieldLine label="สาขา" value={data.bankBranch} />
+                        <FieldLine label="หมายเลขบัญชี" value={data.bankAccountNumber} />
+                        <FieldLine label="ชื่อบัญชี" value={data.bankAccountName} />
+                      </View>,
+                    );
+                  }
+                  return nodes;
+                })}
             </View>
           );
         })}

@@ -75,6 +75,10 @@ const rentPaymentSection: Section = {
       type: "number",
     },
     { name: "depositAmount", label: "เงินประกันสัญญา (บาท) / Security deposit (Baht)", type: "number" },
+    { name: "bankName", label: "ชื่อธนาคาร / Bank" },
+    { name: "bankBranch", label: "สาขา / Branch" },
+    { name: "bankAccountNumber", label: "เลขบัญชี / Account Number" },
+    { name: "bankAccountName", label: "ชื่อบัญชี / Account Name" },
   ],
 };
 

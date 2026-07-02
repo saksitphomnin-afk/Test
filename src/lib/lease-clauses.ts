@@ -63,6 +63,93 @@ function engDate(v?: string): string {
 const or = (v: string | undefined, fallback = "…………………………") =>
   v && v.trim() ? v : fallback;
 
+// ---------- Thai number-to-words (บาทถ้วน / บาทเอ็ด / ยี่สิบเอ็ด ฯลฯ) ----------
+
+const THAI_DIGITS = [
+  "ศูนย์",
+  "หนึ่ง",
+  "สอง",
+  "สาม",
+  "สี่",
+  "ห้า",
+  "หก",
+  "เจ็ด",
+  "แปด",
+  "เก้า",
+];
+// index = place value within a 6-digit group: 0=หน่วย, 1=สิบ, 2=ร้อย, 3=พัน, 4=หมื่น, 5=แสน
+const THAI_PLACES = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน"];
+
+/** แปลงตัวเลข (สูงสุด 6 หลัก ไม่มีเครื่องหมายลบ) เป็นคำอ่านภาษาไทย ไม่รวมหน่วยเงิน */
+function convertSixDigitGroup(digits: string): string {
+  let result = "";
+  const len = digits.length;
+  for (let i = 0; i < len; i++) {
+    const digit = Number(digits[i]);
+    if (digit === 0) continue;
+    const place = len - i - 1;
+    if (place === 0) {
+      // หลักหน่วย: ใช้ "เอ็ด" แทน "หนึ่ง" เมื่อเป็นตัวเลขที่มีมากกว่า 1 หลัก
+      result += digit === 1 && len > 1 ? "เอ็ด" : THAI_DIGITS[digit];
+    } else if (place === 1) {
+      // หลักสิบ: "สิบ" (ไม่ใช่ "หนึ่งสิบ"), "ยี่สิบ" (ไม่ใช่ "สองสิบ")
+      if (digit === 1) result += "สิบ";
+      else if (digit === 2) result += "ยี่สิบ";
+      else result += THAI_DIGITS[digit] + "สิบ";
+    } else {
+      result += THAI_DIGITS[digit] + THAI_PLACES[place];
+    }
+  }
+  return result;
+}
+
+/** แปลงจำนวนเต็มไม่ติดลบเป็นคำอ่านภาษาไทยเต็มรูปแบบ (รองรับหลักล้านซ้ำ) */
+function convertIntegerToThaiWords(value: number): string {
+  if (value === 0) return THAI_DIGITS[0];
+  let numStr = String(Math.trunc(value));
+  const groups: string[] = [];
+  while (numStr.length > 0) {
+    const start = Math.max(0, numStr.length - 6);
+    groups.unshift(numStr.slice(start));
+    numStr = numStr.slice(0, start);
+  }
+  return groups
+    .map((group, idx) => {
+      const text = convertSixDigitGroup(group);
+      if (!text) return "";
+      const millionSuffixCount = groups.length - 1 - idx;
+      return text + "ล้าน".repeat(millionSuffixCount);
+    })
+    .join("");
+}
+
+/**
+ * แปลงจำนวนเงินบาท (string ตัวเลข อาจมีทศนิยมสตางค์) เป็นคำอ่านภาษาไทยแบบ "...บาทถ้วน"
+ * หรือ "...บาท...สตางค์" ใช้สำหรับกำกับจำนวนเงินในสัญญาฉบับภาษาไทย เช่น
+ * bahtText("18000") -> "หนึ่งหมื่นแปดพันบาทถ้วน"
+ * bahtText("25000.50") -> "สองหมื่นห้าพันบาทห้าสิบสตางค์"
+ */
+function bahtText(v?: string): string {
+  if (!v) return "";
+  const n = Number(v);
+  if (Number.isNaN(n) || n < 0) return "";
+  const rounded = Math.round(n * 100) / 100;
+  const bahtPart = Math.trunc(rounded);
+  const satangPart = Math.round((rounded - bahtPart) * 100);
+  const bahtWords = convertIntegerToThaiWords(bahtPart);
+  if (satangPart === 0) {
+    return `${bahtWords}บาทถ้วน`;
+  }
+  return `${bahtWords}บาท${convertIntegerToThaiWords(satangPart)}สตางค์`;
+}
+
+/** จำนวนเงิน (ตัวเลขมีคอมมา) พร้อมคำอ่านในวงเล็บ เช่น "18,000 บาท (หนึ่งหมื่นแปดพันบาทถ้วน)" */
+function bahtWithWords(v?: string): string {
+  const formatted = baht(v);
+  const words = bahtText(v);
+  return words ? `${formatted} บาท (${words})` : `${formatted} บาท`;
+}
+
 export const LEASE_CLAUSES: LeaseClause[] = [
   {
     id: "term",
@@ -102,9 +189,9 @@ export const LEASE_CLAUSES: LeaseClause[] = [
       `2.3 The Lessor shall be responsible for the common fee and any other expenses collected by the condominium juristic person during the term of this agreement, unless otherwise agreed.`,
     ],
     bodyTh: (d) => [
-      `2.1 ผู้เช่าตกลงชำระค่าเช่าให้แก่ผู้ให้เช่าเป็นจำนวนเงินสุทธิเดือนละ ${baht(
+      `2.1 ผู้เช่าตกลงชำระค่าเช่าให้แก่ผู้ให้เช่าเป็นจำนวนเงินสุทธิเดือนละ ${bahtWithWords(
         d.monthlyRent,
-      )} บาท (ไม่รวมภาษีหัก ณ ที่จ่าย) โดยต้องชำระไม่เกินวันที่ ${or(
+      )} (ไม่รวมภาษีหัก ณ ที่จ่าย) โดยต้องชำระไม่เกินวันที่ ${or(
         d.paymentDueDay,
         "…",
       )} ของทุกเดือน ด้วยวิธีโอนเงินเข้าบัญชีธนาคารของผู้ให้เช่า`,
@@ -126,9 +213,9 @@ export const LEASE_CLAUSES: LeaseClause[] = [
       `3.4 The Lessor hereby acknowledges receipt of the Security Deposit from the Tenant.`,
     ],
     bodyTh: (d) => [
-      `3.1 ในวันที่ทำสัญญาฉบับนี้ ผู้เช่าได้วางเงินประกันไว้แก่ผู้ให้เช่าเป็นจำนวนเงิน ${baht(
+      `3.1 ในวันที่ทำสัญญาฉบับนี้ ผู้เช่าได้วางเงินประกันไว้แก่ผู้ให้เช่าเป็นจำนวนเงิน ${bahtWithWords(
         d.depositAmount,
-      )} บาท ("เงินประกัน") ซึ่งผู้ให้เช่าจะยึดถือไว้ตลอดอายุสัญญาโดยไม่มีดอกเบี้ย เพื่อเป็นหลักประกันความเสียหายที่อาจเกิดขึ้นแก่ทรัพย์สินที่เช่าอันอยู่ในความรับผิดชอบของผู้เช่า และเพื่อเป็นหลักประกันการชำระหนี้ใด ๆ ในอนาคตที่ผู้เช่าพึงชำระให้แก่ผู้ให้เช่าตามสัญญานี้ ทั้งนี้ ค่าเช่าไม่สามารถนำมาหักกับเงินประกันได้ เว้นแต่จะตกลงกันเป็นอย่างอื่น`,
+      )} ("เงินประกัน") ซึ่งผู้ให้เช่าจะยึดถือไว้ตลอดอายุสัญญาโดยไม่มีดอกเบี้ย เพื่อเป็นหลักประกันความเสียหายที่อาจเกิดขึ้นแก่ทรัพย์สินที่เช่าอันอยู่ในความรับผิดชอบของผู้เช่า และเพื่อเป็นหลักประกันการชำระหนี้ใด ๆ ในอนาคตที่ผู้เช่าพึงชำระให้แก่ผู้ให้เช่าตามสัญญานี้ ทั้งนี้ ค่าเช่าไม่สามารถนำมาหักกับเงินประกันได้ เว้นแต่จะตกลงกันเป็นอย่างอื่น`,
       `3.2 ผู้ให้เช่าจะคืนเงินประกันให้แก่ผู้เช่า หลังจากหักความเสียหายหรือค่าใช้จ่ายที่ค้างชำระใด ๆ อันเป็นความรับผิดชอบของผู้เช่าแล้ว ภายใน 30 วัน นับถัดจากวันสิ้นสุดสัญญาหรือครบกำหนดระยะเวลาเช่าตามข้อ 1 กรณีที่เงินประกันไม่เพียงพอต่อความเสียหายดังกล่าว ผู้เช่าต้องรับผิดชำระเงินส่วนที่ขาดให้แก่ผู้ให้เช่าให้ครบถ้วนภายใน 15 วัน นับแต่วันที่ได้รับแจ้งจากผู้ให้เช่า`,
       `3.3 กรณีที่ผู้ให้เช่าไม่ปฏิบัติตามกำหนดระยะเวลาตามข้อ 3.2 ผู้เช่ามีสิทธิเรียกร้องเงินประกันในส่วนที่ตนควรได้รับคืนจากผู้ให้เช่า โดยคิดดอกเบี้ยผิดนัดในอัตราร้อยละ 15 ต่อปี นับถัดจากวันที่ครบกำหนดตามข้อ 3.2 จนกว่าผู้ให้เช่าจะชำระเสร็จสิ้นแก่ผู้เช่า`,
       `3.4 ผู้ให้เช่าขอรับรองว่าได้รับเงินประกันจากผู้เช่าไว้เรียบร้อยแล้ว`,
@@ -297,4 +384,4 @@ function ordinalSuffixEn(v?: string): string {
   return "th";
 }
 
-export { thaiDate, engDate, baht as bahtNumber };
+export { thaiDate, engDate, baht as bahtNumber, bahtText, or };
