@@ -23,15 +23,42 @@ export function Gallery({
     );
   }
 
+  function go(dir: number) {
+    setActive((i) => (i + dir + images.length) % images.length);
+  }
+
   return (
     <div className="space-y-3">
-      <div className="aspect-[4/3] overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+      <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={images[active].url}
           alt={alt}
           className="h-full w-full object-contain"
         />
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label="รูปก่อนหน้า"
+              className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/60 text-gray-800 shadow-sm backdrop-blur transition hover:bg-white/90"
+            >
+              <ChevronLeft />
+            </button>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label="รูปถัดไป"
+              className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/60 text-gray-800 shadow-sm backdrop-blur transition hover:bg-white/90"
+            >
+              <ChevronRight />
+            </button>
+            <span className="absolute bottom-3 right-3 rounded-full bg-black/45 px-2 py-0.5 text-xs font-medium text-white">
+              {active + 1}/{images.length}
+            </span>
+          </>
+        )}
       </div>
       {images.length > 1 && (
         <div className="grid grid-cols-5 gap-2">
@@ -63,5 +90,33 @@ export function Gallery({
         ⬇ ดาวน์โหลดรูปทั้งหมด ({images.length} รูป)
       </a>
     </div>
+  );
+}
+
+function ChevronLeft() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M15 5l-7 7 7 7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronRight() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path
+        d="M9 5l7 7-7 7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

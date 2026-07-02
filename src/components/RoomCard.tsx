@@ -1,13 +1,12 @@
 import Link from "next/link";
 import type { Room, RoomImage } from "@prisma/client";
 import { StatusBadge } from "@/components/StatusBadge";
+import { RoomCardImages } from "@/components/RoomCardImages";
 import { LISTING_META, formatBaht, formatRelativeTime } from "@/lib/constants";
-import { cn } from "@/lib/utils";
 
 type RoomWithImages = Room & { images: RoomImage[] };
 
 export function RoomCard({ room }: { room: RoomWithImages }) {
-  const cover = room.images[0]?.url;
   const priceLabel =
     room.listingType === "SALE"
       ? formatBaht(room.salePrice)
@@ -28,39 +27,14 @@ export function RoomCard({ room }: { room: RoomWithImages }) {
       className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-        {cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={cover}
-            alt={room.projectName}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="grid h-full w-full place-items-center text-sm text-gray-400">
-            ไม่มีรูป
-          </div>
-        )}
+        <RoomCardImages images={room.images} alt={room.projectName} />
 
-        <div className="absolute left-2 top-2 flex items-center gap-1">
+        <div className="absolute left-2 top-2 z-10 flex items-center gap-1">
           <StatusBadge status={room.status} size="sm" />
           <span className="rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200">
             {LISTING_META[room.listingType].label}
           </span>
         </div>
-
-        {room.images.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
-            {room.images.slice(0, 5).map((img, i) => (
-              <span
-                key={img.id}
-                className={cn(
-                  "h-1 w-1 rounded-full",
-                  i === 0 ? "bg-white" : "bg-white/50",
-                )}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-3">
