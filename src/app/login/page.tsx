@@ -33,7 +33,7 @@ export default function LoginPage() {
           <img
             src="/logo.png"
             alt="Place co."
-            className="mx-auto mb-3 h-14 w-auto"
+            className="mx-auto mb-3 h-20 w-auto"
           />
           <p className="mt-1 text-sm text-gray-500">
             ระบบจัดการสต็อกห้องคอนโด
