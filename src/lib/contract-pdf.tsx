@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import {
   Document,
@@ -16,29 +17,21 @@ import { CONTRACT_META } from "@/lib/constants";
 
 export type { Lang };
 
-// บน serverless (Netlify/Vercel) ไฟล์ใน public อาจไม่อยู่ใน bundle ของฟังก์ชัน
-// จึงโหลดฟอนต์จาก URL ของเว็บ (static asset ถูกเสิร์ฟเสมอ) เมื่อรู้ base URL
-// ส่วนตอน dev บนเครื่องใช้ path ไฟล์โดยตรง
-function siteBaseUrl(): string | undefined {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
-  if (process.env.URL) return process.env.URL; // Netlify
-  if (process.env.DEPLOY_PRIME_URL) return process.env.DEPLOY_PRIME_URL; // Netlify preview
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`; // Vercel
-  return undefined;
-}
-
-function fontSrc(file: string): string {
-  const base = siteBaseUrl();
-  return base
-    ? `${base.replace(/\/$/, "")}/fonts/${file}`
-    : path.join(process.cwd(), "public/fonts", file);
+// อ่านไฟล์ฟอนต์ตอน module โหลด แล้วฝังเป็น base64 data URL แทนการอ้าง path/URL
+// ตรง ๆ — กัน @react-pdf/renderer พึ่งพา process.cwd() หรือ fetch กลับมาที่เว็บตัวเอง
+// ตอน runtime บน serverless (Netlify) ซึ่งเปราะบางกว่ามาก ไฟล์ถูกบังคับรวมเข้า
+// function bundle ผ่าน outputFileTracingIncludes ใน next.config.ts แล้ว
+function fontDataUrl(file: string): string {
+  const filePath = path.join(process.cwd(), "public/fonts", file);
+  const base64 = fs.readFileSync(filePath).toString("base64");
+  return `data:font/ttf;base64,${base64}`;
 }
 
 Font.register({
   family: "Sarabun",
   fonts: [
-    { src: fontSrc("Sarabun-Regular.ttf") },
-    { src: fontSrc("Sarabun-Bold.ttf"), fontWeight: "bold" },
+    { src: fontDataUrl("Sarabun-Regular.ttf") },
+    { src: fontDataUrl("Sarabun-Bold.ttf"), fontWeight: "bold" },
   ],
 });
 

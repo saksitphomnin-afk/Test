@@ -8,9 +8,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "15mb",
     },
   },
-  // รวม Prisma query engine เข้า serverless function bundle (จำเป็นบน Netlify/Lambda)
+  // รวม Prisma query engine + ฟอนต์ PDF เข้า serverless function bundle (จำเป็นบน Netlify/Lambda)
   outputFileTracingIncludes: {
-    "/**": ["./node_modules/.prisma/client/**/*"],
+    "/**": ["./node_modules/.prisma/client/**/*", "./public/fonts/**/*"],
   },
   images: {
     remotePatterns: [
