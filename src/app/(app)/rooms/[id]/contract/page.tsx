@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { ContractForm } from "@/components/ContractForm";
 import { prefillFromRoom, type ContractData } from "@/lib/contract";
 
+export const dynamic = "force-dynamic";
+
 export default async function ContractPage({
   params,
 }: {

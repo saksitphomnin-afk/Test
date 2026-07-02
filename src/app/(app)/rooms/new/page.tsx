@@ -1,6 +1,7 @@
 import { RoomForm } from "@/components/RoomForm";
-import { createRoom } from "@/actions/rooms";
 import { getDistinctProjectNames } from "@/lib/rooms";
+
+export const dynamic = "force-dynamic";
 
 export default async function NewRoomPage() {
   const projects = await getDistinctProjectNames();
@@ -13,7 +14,7 @@ export default async function NewRoomPage() {
           กรอกรายละเอียดห้องและอัปโหลดรูปภาพ
         </p>
       </div>
-      <RoomForm action={createRoom} submitLabel="เพิ่มห้อง" projects={projects} />
+      <RoomForm apiUrl="/api/rooms" method="POST" submitLabel="เพิ่มห้อง" projects={projects} />
     </div>
   );
 }

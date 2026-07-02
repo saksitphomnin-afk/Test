@@ -8,6 +8,8 @@ import { DeleteRoomButton } from "@/components/DeleteRoomButton";
 import { LinkButton } from "@/components/ui/Button";
 import { LISTING_META, formatBaht } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (

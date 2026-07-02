@@ -58,7 +58,7 @@ export default async function Dashboard({
             ห้อง
           </p>
         </div>
-        <LinkButton href="/rooms/new" size="sm">
+        <LinkButton href="/rooms/new" prefetch={false} size="sm">
           + เพิ่มห้อง
         </LinkButton>
       </div>
@@ -73,7 +73,7 @@ export default async function Dashboard({
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-center">
           <p className="text-gray-500">ยังไม่มีห้องที่ตรงกับเงื่อนไข</p>
           <div className="mt-4">
-            <LinkButton href="/rooms/new" size="sm">
+            <LinkButton href="/rooms/new" prefetch={false} size="sm">
               + เพิ่มห้องแรก
             </LinkButton>
           </div>

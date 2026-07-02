@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { RoomForm } from "@/components/RoomForm";
-import { updateRoom } from "@/actions/rooms";
 import { getDistinctProjectNames } from "@/lib/rooms";
+
+export const dynamic = "force-dynamic";
 
 export default async function EditRoomPage({
   params,
@@ -19,8 +20,6 @@ export default async function EditRoomPage({
   ]);
   if (!room) notFound();
 
-  const action = updateRoom.bind(null, id);
-
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
@@ -30,7 +29,8 @@ export default async function EditRoomPage({
         </p>
       </div>
       <RoomForm
-        action={action}
+        apiUrl={`/api/rooms/${id}`}
+        method="PATCH"
         room={room}
         images={room.images}
         submitLabel="บันทึกการแก้ไข"

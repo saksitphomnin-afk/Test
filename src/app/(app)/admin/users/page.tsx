@@ -3,6 +3,8 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import { AddUserForm } from "@/components/admin/AddUserForm";
 import { UserRow } from "@/components/admin/UserRow";
 
+export const dynamic = "force-dynamic";
+
 const MESSAGES: Record<string, { text: string; tone: "ok" | "err" }> = {
   deleted: { text: "ลบบัญชีเรียบร้อยแล้ว", tone: "ok" },
   self: { text: "ไม่สามารถลบบัญชีของตัวเองได้", tone: "err" },

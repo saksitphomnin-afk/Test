@@ -1,6 +1,8 @@
 import { NavBar } from "@/components/NavBar";
 import { requireUser } from "@/lib/auth-helpers";
 
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({
   children,
 }: {

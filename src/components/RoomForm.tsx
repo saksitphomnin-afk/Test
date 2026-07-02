@@ -1,20 +1,26 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { useState, useTransition } from "react";
 import type { Room, RoomImage } from "@prisma/client";
-import type { FormState } from "@/actions/rooms";
 import { Input, Select, Textarea, FormRow } from "@/components/ui/Field";
 import { buttonClasses, LinkButton } from "@/components/ui/Button";
 import { STATUS_ORDER, STATUS_META, LISTING_META } from "@/lib/constants";
 import { ExistingImages } from "@/components/ExistingImages";
+import { compressImages } from "@/lib/compressImage";
 
-function SubmitButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
+function SubmitButton({
+  label,
+  pending,
+  extraDisabled,
+}: {
+  label: string;
+  pending: boolean;
+  extraDisabled: boolean;
+}) {
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || extraDisabled}
       className={buttonClasses("primary", "md")}
     >
       {pending ? "กำลังบันทึก..." : label}
@@ -23,24 +29,63 @@ function SubmitButton({ label }: { label: string }) {
 }
 
 export function RoomForm({
-  action,
+  apiUrl,
+  method = "POST",
   room,
   images,
   submitLabel = "บันทึก",
   cancelHref = "/",
   projects = [],
 }: {
-  action: (prev: FormState, formData: FormData) => Promise<FormState>;
+  apiUrl: string;
+  method?: "POST" | "PATCH";
   room?: Room;
   images?: RoomImage[];
   submitLabel?: string;
   cancelHref?: string;
   projects?: string[];
 }) {
-  const [state, formAction] = useActionState<FormState, FormData>(action, {});
+  const [error, setError] = useState<string | undefined>();
+  const [isPending, startTransition] = useTransition();
+  const [compressing, setCompressing] = useState(false);
+  const [fileCount, setFileCount] = useState(0);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const res = await fetch(apiUrl, { method, body: formData });
+      const result = await res.json();
+      if (result.redirectTo) {
+        // full page reload (ไม่ใช้ client-side router) กัน state ค้าง
+        window.location.href = result.redirectTo;
+        return;
+      }
+      setError(result.error ?? "เกิดข้อผิดพลาด กรุณาลองใหม่");
+    });
+  }
+
+  async function handleImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.currentTarget;
+    const files = input.files;
+    if (!files || files.length === 0) {
+      setFileCount(0);
+      return;
+    }
+    setCompressing(true);
+    try {
+      const compressed = await compressImages(Array.from(files));
+      const dt = new DataTransfer();
+      compressed.forEach((f) => dt.items.add(f));
+      input.files = dt.files;
+      setFileCount(compressed.length);
+    } finally {
+      setCompressing(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="mb-4 text-base font-semibold text-gray-900">
           ข้อมูลห้อง
@@ -189,13 +234,25 @@ export function RoomForm({
           name="images"
           accept="image/*"
           multiple
-          className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+          onChange={handleImagesChange}
+          disabled={compressing}
+          className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 disabled:opacity-60"
         />
+        {compressing && (
+          <p className="mt-2 text-xs text-brand-600">
+            กำลังย่อขนาดรูป กรุณารอสักครู่...
+          </p>
+        )}
+        {!compressing && fileCount > 0 && (
+          <p className="mt-2 text-xs text-gray-500">
+            เลือกแล้ว {fileCount} รูป (ย่อขนาดอัตโนมัติเพื่อให้อัปโหลดได้เร็วขึ้น)
+          </p>
+        )}
       </section>
 
-      {state.error && (
+      {error && (
         <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          {state.error}
+          {error}
         </p>
       )}
 
@@ -203,7 +260,11 @@ export function RoomForm({
         <LinkButton href={cancelHref} variant="secondary">
           ยกเลิก
         </LinkButton>
-        <SubmitButton label={submitLabel} />
+        <SubmitButton
+          label={submitLabel}
+          pending={isPending}
+          extraDisabled={compressing}
+        />
       </div>
     </form>
   );
