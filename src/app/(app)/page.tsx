@@ -48,16 +48,12 @@ export default async function Dashboard({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">
-            Condo listing
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            พบทั้งหมด{" "}
-            <span className="font-medium text-gray-700">{rooms.length}</span>{" "}
-            ห้อง
-          </p>
-        </div>
+        <h1 className="text-xl font-semibold text-gray-900">
+          Condo listing
+          <span className="ml-2 text-sm font-normal text-gray-500">
+            {rooms.length} ห้อง
+          </span>
+        </h1>
         <LinkButton href="/rooms/new" prefetch={false} size="sm">
           + เพิ่มห้อง
         </LinkButton>

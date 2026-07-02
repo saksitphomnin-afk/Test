@@ -9,7 +9,7 @@ export function NavBar({
   role?: string;
 }) {
   const links = [
-    { href: "/", label: "หน้าหลัก" },
+    { href: "/", label: "Condo" },
     { href: "/rooms/new", label: "เพิ่มห้อง" },
   ];
   if (role === "ADMIN") {
