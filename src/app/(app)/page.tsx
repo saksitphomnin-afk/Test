@@ -17,7 +17,9 @@ export default async function Dashboard({
   const sp = await searchParams;
   const q = sp.q?.trim();
   const status = sp.status as RoomStatus | undefined;
-  const project = sp.project?.trim();
+  // ไม่ trim ค่าโครงการ — ต้องเทียบให้ตรงกับค่าที่เก็บใน DB เป๊ะ (เผื่อข้อมูลเก่า
+  // ที่มีช่องว่างท้ายชื่อ) มิฉะนั้น dropdown เลือกแล้วจะกรองไม่เจอ
+  const project = sp.project || undefined;
 
   const where: Prisma.RoomWhereInput = {};
   if (status && STATUS_ORDER.includes(status)) {

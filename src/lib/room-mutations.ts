@@ -3,15 +3,16 @@ import { prisma } from "@/lib/db";
 import { uploadImage, isValidImage } from "@/lib/storage";
 
 export const roomSchema = z.object({
-  projectName: z.string().min(1, "กรุณากรอกชื่อโครงการ"),
-  tower: z.string().optional(),
-  roomNumber: z.string().min(1, "กรุณากรอกเลขห้อง"),
-  floor: z.string().optional(),
+  // .trim() กันช่องว่างหน้า/ท้ายชื่อ ซึ่งทำให้ตัวกรองโครงการเทียบไม่ตรง
+  projectName: z.string().trim().min(1, "กรุณากรอกชื่อโครงการ"),
+  tower: z.string().trim().optional(),
+  roomNumber: z.string().trim().min(1, "กรุณากรอกเลขห้อง"),
+  floor: z.string().trim().optional(),
   sizeSqm: z.coerce.number().positive().optional().or(z.literal(NaN)),
-  roomType: z.string().optional(),
-  ownerName: z.string().min(1, "กรุณากรอกชื่อเจ้าของ"),
-  ownerPhone: z.string().min(1, "กรุณากรอกเบอร์โทรเจ้าของ"),
-  ownerLineId: z.string().optional(),
+  roomType: z.string().trim().optional(),
+  ownerName: z.string().trim().min(1, "กรุณากรอกชื่อเจ้าของ"),
+  ownerPhone: z.string().trim().min(1, "กรุณากรอกเบอร์โทรเจ้าของ"),
+  ownerLineId: z.string().trim().optional(),
   listingType: z.enum(["RENT", "SALE", "BOTH"]),
   status: z.enum(["AVAILABLE", "RESERVED", "RENTED", "SOLD"]),
   salePrice: z.coerce.number().nonnegative().optional().or(z.literal(NaN)),
