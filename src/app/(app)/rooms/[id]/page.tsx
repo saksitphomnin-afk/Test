@@ -6,6 +6,7 @@ import { StatusChanger } from "@/components/StatusChanger";
 import { RemarkSection } from "@/components/RemarkSection";
 import { DeleteRoomButton } from "@/components/DeleteRoomButton";
 import { LinkButton } from "@/components/ui/Button";
+import { requireUser } from "@/lib/auth-helpers";
 import { LISTING_META, formatBaht } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,8 @@ export default async function RoomDetailPage({
 }) {
   const { id } = await params;
   const sp = await searchParams;
+  const user = await requireUser();
+  const isAdmin = user.role === "ADMIN";
   const photoError = Number(sp.photoError ?? 0);
   const room = await prisma.room.findUnique({
     where: { id },
@@ -70,7 +73,7 @@ export default async function RoomDetailPage({
           <LinkButton href={`/rooms/${id}/edit`} variant="secondary" size="sm">
             แก้ไข
           </LinkButton>
-          <DeleteRoomButton id={id} />
+          {isAdmin && <DeleteRoomButton id={id} />}
         </div>
       </div>
 

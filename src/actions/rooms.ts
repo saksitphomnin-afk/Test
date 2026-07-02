@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { RoomStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth-helpers";
+import { requireUser, requireAdmin } from "@/lib/auth-helpers";
 import { deleteImage } from "@/lib/storage";
 
 export async function deleteRoom(id: string) {
-  await requireUser();
+  // ลบห้องได้เฉพาะแอดมิน (member โดนเด้งกลับหน้าหลักโดยไม่ลบ)
+  await requireAdmin();
   const images = await prisma.roomImage.findMany({ where: { roomId: id } });
   await Promise.all(images.map((img) => deleteImage(img.url)));
   await prisma.room.delete({ where: { id } });
