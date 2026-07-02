@@ -32,6 +32,13 @@ enum ContractType {
   SALE // สัญญาซื้อขาย
 }
 
+enum CustomerStatus {
+  NEW       // ใหม่
+  CONTACTED // กำลังคุย
+  CLOSED    // ปิดการขาย
+  CANCELLED // ยกเลิก
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -43,6 +50,7 @@ model User {
   createdRooms     Room[]      @relation("RoomCreatedBy")
   remarkLogs       RemarkLog[]
   createdContracts Contract[]
+  customers        Customer[]  @relation("CustomerCreatedBy")
 }
 
 model Room {
@@ -97,6 +105,25 @@ model RemarkLog {
   createdAt DateTime @default(now())
 
   @@index([roomId])
+}
+
+// ลูกค้า/Enquiry — เป็นของแต่ละคนในทีม (member เห็นเฉพาะของตัวเอง, admin เห็นทั้งหมด)
+model Customer {
+  id        String         @id @default(cuid())
+  name      String // ชื่อลูกค้า
+  phone     String // เบอร์โทร
+  lineId    String? // Line ID
+  note      String? // ความต้องการ/รายละเอียด
+  status    CustomerStatus @default(NEW)
+
+  createdById String
+  createdBy   User   @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([phone])
 }
 
 model Contract {

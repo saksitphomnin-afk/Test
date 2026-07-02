@@ -11,6 +11,7 @@ export function NavBar({
   const links = [
     { href: "/", label: "Condo" },
     { href: "/rooms/new", label: "เพิ่มห้อง" },
+    { href: "/customers", label: "Enquiry" },
   ];
   if (role === "ADMIN") {
     links.push({ href: "/admin/users", label: "จัดการผู้ใช้" });
