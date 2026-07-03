@@ -60,6 +60,7 @@ export async function PATCH(
       name: d.name,
       phone: normalizePhone(d.phone),
       lineId: d.lineId || null,
+      budget: d.budget ?? null,
       note: d.note || null,
       status: d.status,
     },

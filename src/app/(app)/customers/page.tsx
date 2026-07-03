@@ -49,19 +49,52 @@ export default async function CustomersPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {customers.map((c) => {
-            const meta = CUSTOMER_STATUS_META[c.status];
-            const canManage = isAdmin || c.createdById === user.id;
-            return (
-              <div
-                key={c.id}
-                className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">{c.name}</h3>
+        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full min-w-[860px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-4 py-3">รหัส</th>
+                <th className="px-4 py-3">ชื่อ</th>
+                <th className="px-4 py-3">เบอร์</th>
+                <th className="px-4 py-3 text-right">งบ (บาท)</th>
+                <th className="px-4 py-3">สถานะ</th>
+                <th className="px-4 py-3">Remark</th>
+                {isAdmin && <th className="px-4 py-3">ผู้ดูแล</th>}
+                <th className="px-4 py-3 text-right">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map((c) => {
+                const meta = CUSTOMER_STATUS_META[c.status];
+                const canManage = isAdmin || c.createdById === user.id;
+                return (
+                  <tr
+                    key={c.id}
+                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
+                  >
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-500">
+                      {c.code ?? "-"}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {c.name}
+                      {c.lineId && (
+                        <span className="block text-xs font-normal text-gray-400">
+                          LINE: {c.lineId}
+                        </span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <a
+                        href={`tel:${c.phone}`}
+                        className="text-brand-600 hover:underline"
+                      >
+                        {c.phone}
+                      </a>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-700">
+                      {c.budget != null ? c.budget.toLocaleString("en-US") : "-"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
                       <span
                         className={cn(
                           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
@@ -71,50 +104,41 @@ export default async function CustomersPage() {
                         <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
                         {meta.label}
                       </span>
-                    </div>
-                    <p className="mt-1 text-sm text-gray-600">
-                      📞{" "}
-                      <a
-                        href={`tel:${c.phone}`}
-                        className="text-brand-600 hover:underline"
-                      >
-                        {c.phone}
-                      </a>
-                      {c.lineId ? (
-                        <span className="text-gray-500"> · LINE: {c.lineId}</span>
-                      ) : null}
-                    </p>
-                    {c.note && (
-                      <p className="mt-1 whitespace-pre-line text-sm text-gray-500">
-                        {c.note}
-                      </p>
+                    </td>
+                    <td className="max-w-[240px] px-4 py-3 text-gray-500">
+                      <span className="block truncate" title={c.note ?? ""}>
+                        {c.note || "-"}
+                      </span>
+                    </td>
+                    {isAdmin && (
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                        {c.createdBy.name}
+                        <span className="block text-xs text-gray-400">
+                          {formatDateTime(c.createdAt)}
+                        </span>
+                      </td>
                     )}
-                  </div>
-                  {canManage && (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <LinkButton
-                        href={`/customers/${c.id}/edit`}
-                        variant="secondary"
-                        size="sm"
-                      >
-                        แก้ไข
-                      </LinkButton>
-                      <DeleteCustomerButton id={c.id} />
-                    </div>
-                  )}
-                </div>
-                <div className="mt-2 border-t border-gray-100 pt-2 text-xs text-gray-400">
-                  {isAdmin && (
-                    <>
-                      ผู้ดูแล:{" "}
-                      <span className="text-gray-600">{c.createdBy.name}</span> ·{" "}
-                    </>
-                  )}
-                  แอดเมื่อ {formatDateTime(c.createdAt)}
-                </div>
-              </div>
-            );
-          })}
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      {canManage ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <LinkButton
+                            href={`/customers/${c.id}/edit`}
+                            variant="secondary"
+                            size="sm"
+                          >
+                            แก้ไข
+                          </LinkButton>
+                          <DeleteCustomerButton id={c.id} />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

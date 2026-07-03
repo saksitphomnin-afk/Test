@@ -47,6 +47,10 @@ model User {
   role         Role     @default(MEMBER)
   createdAt    DateTime @default(now())
 
+  // รหัสรันลูกค้า: อักษรย่อต่อคน (แอดมินตั้ง) + ตัวนับต่อคน → เช่น SP-0001 (3 account ไม่ชนกัน)
+  customerPrefix String?
+  customerSeq    Int     @default(0)
+
   createdRooms     Room[]      @relation("RoomCreatedBy")
   remarkLogs       RemarkLog[]
   createdContracts Contract[]
@@ -110,9 +114,11 @@ model RemarkLog {
 // ลูกค้า/Enquiry — เป็นของแต่ละคนในทีม (member เห็นเฉพาะของตัวเอง, admin เห็นทั้งหมด)
 model Customer {
   id        String         @id @default(cuid())
+  code      String?        @unique // รหัสรันอัตโนมัติ เช่น SP-0001
   name      String // ชื่อลูกค้า
   phone     String // เบอร์โทร
   lineId    String? // Line ID
+  budget    Int? // งบสูงสุด (บาท)
   note      String? // ความต้องการ/รายละเอียด
   status    CustomerStatus @default(NEW)
 

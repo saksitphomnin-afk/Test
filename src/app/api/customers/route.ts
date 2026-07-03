@@ -6,6 +6,8 @@ import {
   parseCustomer,
   findConflict,
   normalizePhone,
+  deriveDefaultPrefix,
+  formatCustomerCode,
 } from "@/lib/customers";
 import { formatDateTime } from "@/lib/constants";
 
@@ -44,15 +46,28 @@ export async function POST(req: Request) {
     );
   }
 
-  await prisma.customer.create({
-    data: {
-      name: d.name,
-      phone: normalizePhone(d.phone),
-      lineId: d.lineId || null,
-      note: d.note || null,
-      status: d.status,
-      createdById: session.user.id,
-    },
+  // ออกรหัสรันแบบ atomic: เพิ่มตัวนับของผู้ใช้คนนี้ แล้วประกอบ prefix-เลขรัน (กัน 3 account ชนกัน)
+  const userId = session.user.id;
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id: userId },
+      data: { customerSeq: { increment: 1 } },
+      select: { name: true, customerPrefix: true, customerSeq: true },
+    });
+    const prefix = user.customerPrefix?.trim() || deriveDefaultPrefix(user.name);
+    const code = formatCustomerCode(prefix, user.customerSeq);
+    await tx.customer.create({
+      data: {
+        code,
+        name: d.name,
+        phone: normalizePhone(d.phone),
+        lineId: d.lineId || null,
+        budget: d.budget ?? null,
+        note: d.note || null,
+        status: d.status,
+        createdById: userId,
+      },
+    });
   });
 
   revalidatePath("/customers");

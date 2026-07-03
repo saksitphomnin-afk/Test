@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { resetPassword, deleteUser, type UserFormState } from "@/actions/users";
+import {
+  resetPassword,
+  setCustomerPrefix,
+  deleteUser,
+  type UserFormState,
+} from "@/actions/users";
 import { Input } from "@/components/ui/Field";
 import { buttonClasses } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/constants";
@@ -11,6 +16,7 @@ type UserItem = {
   name: string;
   email: string;
   role: string;
+  customerPrefix: string | null;
   createdAt: Date;
 };
 
@@ -18,6 +24,10 @@ export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<UserFormState, FormData>(
     resetPassword.bind(null, user.id),
+    {},
+  );
+  const [prefixState, prefixAction] = useActionState<UserFormState, FormData>(
+    setCustomerPrefix.bind(null, user.id),
     {},
   );
 
@@ -59,6 +69,32 @@ export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
           )}
         </div>
       </div>
+
+      <form
+        action={prefixAction}
+        className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3"
+      >
+        <label className="text-sm text-gray-600">อักษรย่อรหัสลูกค้า:</label>
+        <input
+          name="prefix"
+          defaultValue={user.customerPrefix ?? ""}
+          placeholder="เช่น SP"
+          maxLength={6}
+          className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-sm uppercase focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+        />
+        <button type="submit" className={buttonClasses("secondary", "sm")}>
+          บันทึกอักษรย่อ
+        </button>
+        <span className="text-xs text-gray-400">
+          รหัสลูกค้าจะเป็น {(user.customerPrefix || "??").toUpperCase()}-0001, -0002 …
+        </span>
+        {prefixState.error && (
+          <p className="w-full text-sm text-rose-700">{prefixState.error}</p>
+        )}
+        {prefixState.ok && (
+          <p className="w-full text-sm text-green-700">บันทึกอักษรย่อแล้ว</p>
+        )}
+      </form>
 
       {open && (
         <form action={formAction} className="mt-3 flex flex-wrap items-end gap-2">

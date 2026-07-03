@@ -57,6 +57,24 @@ export async function resetPassword(
   return { ok: true };
 }
 
+export async function setCustomerPrefix(
+  id: string,
+  _prev: UserFormState,
+  formData: FormData,
+): Promise<UserFormState> {
+  await requireAdmin();
+  // อักษรย่อรหัสลูกค้า: A-Z/0-9 2-6 ตัว (เก็บเป็นตัวใหญ่)
+  const prefix = String(formData.get("prefix") ?? "")
+    .trim()
+    .toUpperCase();
+  if (!/^[A-Z0-9]{2,6}$/.test(prefix)) {
+    return { error: "อักษรย่อ 2-6 ตัว (A-Z / 0-9)" };
+  }
+  await prisma.user.update({ where: { id }, data: { customerPrefix: prefix } });
+  revalidatePath("/admin/users");
+  return { ok: true };
+}
+
 export async function deleteUser(id: string) {
   const admin = await requireAdmin();
   if (admin.id === id) redirect("/admin/users?err=self");

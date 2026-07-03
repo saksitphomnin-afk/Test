@@ -39,6 +39,7 @@ export const customerSchema = z.object({
   name: z.string().trim().min(1, "กรุณากรอกชื่อลูกค้า"),
   phone: z.string().trim().min(1, "กรุณากรอกเบอร์โทร"),
   lineId: z.string().trim().optional(),
+  budget: z.coerce.number().int().nonnegative().optional(),
   note: z.string().trim().optional(),
   status: z.enum(CUSTOMER_STATUSES).default("NEW"),
 });
@@ -50,14 +51,37 @@ export function normalizePhone(p: string): string {
   return p.replace(/\D/g, "");
 }
 
+/** งบใส่ลูกน้ำในฟอร์ม ("20,000") → ลอกลูกน้ำก่อนให้ zod แปลงเป็นตัวเลข */
+function stripCommas(v: FormDataEntryValue | null): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const cleaned = v.replace(/,/g, "").trim();
+  return cleaned || undefined;
+}
+
 export function parseCustomer(formData: FormData) {
   return customerSchema.safeParse({
     name: formData.get("name") ?? "",
     phone: formData.get("phone") ?? "",
     lineId: formData.get("lineId") || undefined,
+    budget: stripCommas(formData.get("budget")),
     note: formData.get("note") || undefined,
     status: formData.get("status") || "NEW",
   });
+}
+
+/** อักษรย่อเริ่มต้นจากชื่อ (ใช้เมื่อแอดมินยังไม่ตั้ง prefix) เช่น "สมชาย ใจดี" → "สจ", "John" → "JO" */
+export function deriveDefaultPrefix(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters =
+    parts.length >= 2
+      ? parts[0][0] + parts[1][0]
+      : (parts[0] ?? "X").slice(0, 2);
+  return letters.toUpperCase();
+}
+
+/** ประกอบรหัสลูกค้า เช่น ("SP", 1) → "SP-0001" */
+export function formatCustomerCode(prefix: string, seq: number): string {
+  return `${prefix}-${String(seq).padStart(4, "0")}`;
 }
 
 export type Conflict = {

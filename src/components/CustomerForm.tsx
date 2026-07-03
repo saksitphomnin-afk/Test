@@ -6,6 +6,28 @@ import { Input, Select, Textarea, FormRow } from "@/components/ui/Field";
 import { buttonClasses, LinkButton } from "@/components/ui/Button";
 import { CUSTOMER_STATUSES, CUSTOMER_STATUS_META } from "@/lib/customers";
 
+// ใส่ลูกน้ำคั่นหลักพัน เช่น 20000 -> "20,000" (server ลอกลูกน้ำออกก่อนบันทึก)
+function withCommas(value: string): string {
+  const digits = value.replace(/[^\d]/g, "");
+  return digits ? Number(digits).toLocaleString("en-US") : "";
+}
+
+function BudgetInput({ defaultValue }: { defaultValue: number | null }) {
+  const [value, setValue] = useState(
+    defaultValue != null ? withCommas(String(defaultValue)) : "",
+  );
+  return (
+    <Input
+      id="budget"
+      name="budget"
+      inputMode="numeric"
+      value={value}
+      onChange={(e) => setValue(withCommas(e.target.value))}
+      placeholder="เช่น 20,000"
+    />
+  );
+}
+
 export function CustomerForm({
   apiUrl,
   method = "POST",
@@ -57,6 +79,9 @@ export function CustomerForm({
               defaultValue={customer?.lineId ?? ""}
               placeholder="เช่น @lineid"
             />
+          </FormRow>
+          <FormRow label="งบสูงสุด (บาท)" htmlFor="budget">
+            <BudgetInput defaultValue={customer?.budget ?? null} />
           </FormRow>
           <FormRow label="สถานะ" htmlFor="status">
             <Select
