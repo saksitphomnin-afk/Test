@@ -90,6 +90,8 @@ export default async function RoomDetailPage({
             <h2 className="mb-2 text-base font-semibold text-gray-900">
               รายละเอียด
             </h2>
+            <InfoRow label="เลขห้อง" value={room.roomNumber} />
+            <InfoRow label="ตึก/อาคาร" value={room.tower} />
             <InfoRow label="ประเภทประกาศ" value={LISTING_META[room.listingType].label} />
             <InfoRow label="ประเภทห้อง" value={room.roomType} />
             <InfoRow label="ชั้น" value={room.floor} />
