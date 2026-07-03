@@ -43,4 +43,5 @@ export async function deleteRoomImage(imageId: string) {
   await deleteImage(image.url);
   await prisma.roomImage.delete({ where: { id: imageId } });
   revalidatePath(`/rooms/${image.roomId}`);
+  revalidatePath(`/rooms/${image.roomId}/edit`);
 }

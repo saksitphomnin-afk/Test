@@ -17,11 +17,17 @@ export function ExistingImages({ images }: { images: RoomImage[] }) {
             alt="รูปห้อง"
             className="h-full w-full object-cover"
           />
-          <form action={deleteRoomImage.bind(null, img.id)}>
+          <form
+            action={deleteRoomImage.bind(null, img.id)}
+            onSubmit={(e) => {
+              if (!confirm("ลบรูปนี้?")) e.preventDefault();
+            }}
+          >
             <button
               type="submit"
               title="ลบรูปนี้"
-              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-xs text-white opacity-0 transition group-hover:opacity-100"
+              aria-label="ลบรูปนี้"
+              className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-sm text-white shadow transition hover:bg-black/80"
             >
               ✕
             </button>
