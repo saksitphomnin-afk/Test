@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ContractType } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { requireUser } from "@/lib/auth-helpers";
 import { ContractForm } from "@/components/ContractForm";
 import { prefillFromRoom, type ContractData } from "@/lib/contract";
 
@@ -12,12 +13,19 @@ export default async function ContractPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await requireUser();
   const { id } = await params;
   const room = await prisma.room.findUnique({
     where: { id },
     include: { contracts: true },
   });
   if (!room) notFound();
+
+  const customers = await prisma.customer.findMany({
+    where: { createdById: user.id },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, code: true, name: true, phone: true },
+  });
 
   const prefill = {
     RENT: prefillFromRoom("RENT", room),
@@ -26,9 +34,26 @@ export default async function ContractPage({
 
   const savedData: Partial<Record<ContractType, ContractData>> = {};
   const savedContractIds: Partial<Record<ContractType, string>> = {};
+  const savedBooking: Partial<
+    Record<
+      ContractType,
+      {
+        customerId: string | null;
+        bookingPaid: boolean;
+        bookingAmount: number | null;
+        slipUrl: string | null;
+      }
+    >
+  > = {};
   for (const c of room.contracts) {
     savedData[c.type] = c.data as ContractData;
     savedContractIds[c.type] = c.id;
+    savedBooking[c.type] = {
+      customerId: c.customerId,
+      bookingPaid: c.bookingPaid,
+      bookingAmount: c.bookingAmount,
+      slipUrl: c.slipUrl,
+    };
   }
 
   return (
@@ -53,6 +78,8 @@ export default async function ContractPage({
         prefill={prefill}
         savedData={savedData}
         savedContractIds={savedContractIds}
+        savedBooking={savedBooking}
+        customers={customers}
       />
     </div>
   );

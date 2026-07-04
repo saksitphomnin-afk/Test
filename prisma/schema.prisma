@@ -128,6 +128,8 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  contracts Contract[]
+
   @@index([createdById])
   @@index([phone])
 }
@@ -138,10 +140,19 @@ model Contract {
   room        Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
   type        ContractType
   data        Json // ค่าฟิลด์ทั้งหมดในฟอร์มสัญญา
+
+  // Phase 2: ผูกกับลูกค้า (Enquiry) + เงินจอง
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  bookingPaid   Boolean   @default(false) // จ่ายเงินจองแล้วหรือยัง
+  bookingAmount Int? // จำนวนเงินจอง (บาท)
+  slipUrl       String? // สลิปการโอนเงินจอง
+
   createdById String
   createdBy   User         @relation(fields: [createdById], references: [id])
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@index([roomId])
+  @@index([customerId])
 }

@@ -19,6 +19,29 @@ export default async function CustomersPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  // จับคู่ห้อง + ใบเสร็จที่จ่ายเงินจองแล้วให้แต่ละลูกค้า (เอาสัญญาล่าสุดพอถ้ามีหลายรายการ)
+  const customerIds = customers.map((c) => c.id);
+  const paidContracts =
+    customerIds.length > 0
+      ? await prisma.contract.findMany({
+          where: { customerId: { in: customerIds }, bookingPaid: true },
+          orderBy: { updatedAt: "desc" },
+          select: {
+            id: true,
+            customerId: true,
+            slipUrl: true,
+            bookingAmount: true,
+            room: { select: { projectName: true, roomNumber: true } },
+          },
+        })
+      : [];
+  const contractByCustomerId = new Map<string, (typeof paidContracts)[number]>();
+  for (const c of paidContracts) {
+    if (c.customerId && !contractByCustomerId.has(c.customerId)) {
+      contractByCustomerId.set(c.customerId, c);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -50,7 +73,7 @@ export default async function CustomersPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full min-w-[860px] border-collapse text-sm">
+          <table className="w-full min-w-[980px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                 <th className="px-4 py-3">รหัส</th>
@@ -59,6 +82,7 @@ export default async function CustomersPage() {
                 <th className="px-4 py-3 text-right">งบ (บาท)</th>
                 <th className="px-4 py-3">สถานะ</th>
                 <th className="px-4 py-3">Remark</th>
+                <th className="px-4 py-3">ห้อง / ใบเสร็จ</th>
                 {isAdmin && <th className="px-4 py-3">ผู้ดูแล</th>}
                 <th className="px-4 py-3 text-right">จัดการ</th>
               </tr>
@@ -109,6 +133,29 @@ export default async function CustomersPage() {
                       <span className="block truncate" title={c.note ?? ""}>
                         {c.note || "-"}
                       </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                      {(() => {
+                        const matched = contractByCustomerId.get(c.id);
+                        if (!matched) return <span className="text-gray-300">-</span>;
+                        return (
+                          <div>
+                            <span className="block text-gray-700">
+                              ห้อง {matched.room.projectName} {matched.room.roomNumber}
+                            </span>
+                            {matched.slipUrl && (
+                              <a
+                                href={`/api/contract/${matched.id}/receipt`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-brand-600 hover:underline"
+                              >
+                                ⬇ ใบเสร็จ
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     {isAdmin && (
                       <td className="whitespace-nowrap px-4 py-3 text-gray-600">
