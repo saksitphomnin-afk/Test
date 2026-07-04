@@ -300,16 +300,6 @@ export function ContractForm({
               ⬇ ดาวน์โหลด PDF
             </a>
           )}
-          {currentId && booking?.slipUrl && (
-            <a
-              href={`/api/contract/${currentId}/receipt`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonClasses("secondary", "md")}
-            >
-              ⬇ ใบเสร็จ (PDF)
-            </a>
-          )}
           <SubmitButton />
         </div>
         {currentId && (
