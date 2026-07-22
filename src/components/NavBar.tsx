@@ -12,6 +12,7 @@ export function NavBar({
     { href: "/", label: "Condo" },
     { href: "/rooms/new", label: "เพิ่มห้อง" },
     { href: "/customers", label: "Enquiry" },
+    { href: "/calculator", label: "คำนวณต้นทุน" },
   ];
   if (role === "ADMIN") {
     links.push({ href: "/admin/users", label: "จัดการผู้ใช้" });
