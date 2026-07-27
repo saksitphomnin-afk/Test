@@ -29,11 +29,16 @@ export function RoomCard({ room }: { room: RoomWithImages }) {
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <RoomCardImages images={room.images} alt={room.projectName} />
 
-        <div className="absolute left-2 top-2 z-10 flex items-center gap-1">
+        <div className="absolute left-2 top-2 z-10 flex flex-wrap items-center gap-1">
           <StatusBadge status={room.status} size="sm" />
           <span className="rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200">
             {LISTING_META[room.listingType].label}
           </span>
+          {room.saleType && (
+            <span className="rounded-full bg-brand-600/95 px-2 py-0.5 text-[11px] font-medium text-white shadow-sm ring-1 ring-inset ring-brand-700/20">
+              {room.saleType}
+            </span>
+          )}
         </div>
       </div>
 
