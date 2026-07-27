@@ -32,6 +32,7 @@ export function SearchFilter({
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [q, setQ] = useState(params.get("q") ?? "");
+  const [focused, setFocused] = useState(false);
   const activeStatus = params.get("status") ?? "";
   const activeProject = params.get("project") ?? "";
   const activeType = params.get("type") ?? "";
@@ -50,32 +51,79 @@ export function SearchFilter({
     startTransition(() => router.push(`/?${sp.toString()}`));
   }
 
+  // แนะนำชื่อโครงการจากรายการที่มีใน DB (autocomplete) ตามที่ผู้ใช้พิมพ์
+  const query = q.trim().toLowerCase();
+  const suggestions =
+    query.length > 0
+      ? projects.filter((p) => p.toLowerCase().includes(query)).slice(0, 8)
+      : [];
+  const showSuggestions = focused && suggestions.length > 0;
+
+  function selectProject(name: string) {
+    setQ(name);
+    setFocused(false);
+    apply({ q: name });
+  }
+
   return (
-    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+    <div className="space-y-3">
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          setFocused(false);
           apply({ q });
         }}
-        className="relative flex-1"
+        className="relative"
       >
-        <button
-          type="submit"
-          disabled={isPending}
-          aria-label="ค้นหา"
-          className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 hover:text-brand-600"
-        >
+        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
           <SearchIcon />
-        </button>
+        </span>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ค้นหา โครงการ / เลขห้อง / เจ้าของ / เบอร์โทร"
-          className="w-full rounded-full border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 120)}
+          placeholder="ค้นหาชื่อโครงการ / เลขห้อง / เจ้าของ / เบอร์โทร"
+          className="w-full rounded-full border border-gray-300 bg-white py-2.5 pl-11 pr-24 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
+        <button
+          type="submit"
+          disabled={isPending}
+          className="absolute inset-y-1.5 right-1.5 inline-flex items-center rounded-full bg-brand-600 px-5 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
+        >
+          ค้นหา
+        </button>
+
+        {showSuggestions && (
+          <ul className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-gray-200 bg-white py-1 shadow-lg">
+            <li className="px-4 pb-1 pt-1.5 text-xs font-semibold text-gray-400">
+              โครงการ
+            </li>
+            {suggestions.map((p) => (
+              <li key={p}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectProject(p);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700"
+                >
+                  <BuildingIcon />
+                  {p}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </form>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+          <FilterIcon />
+          ตัวกรอง
+        </div>
+        <div className="flex flex-wrap gap-2">
         <PillSelect
           value={activeProject}
           onChange={(v) => apply({ project: v })}
@@ -153,6 +201,7 @@ export function SearchFilter({
             </option>
           ))}
         </PillSelect>
+        </div>
       </div>
     </div>
   );
@@ -193,6 +242,46 @@ function SearchIcon() {
         d="m17 17-3.5-3.5"
         stroke="currentColor"
         strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+      <path
+        d="M3 5h14M6 10h8M8.5 15h3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function BuildingIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4 shrink-0 text-brand-500"
+      aria-hidden="true"
+    >
+      <rect
+        x="4"
+        y="3"
+        width="12"
+        height="14"
+        rx="1"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M7 6.5h2M11 6.5h2M7 9.5h2M11 9.5h2M8.5 17v-3h3v3"
+        stroke="currentColor"
+        strokeWidth="1.4"
         strokeLinecap="round"
       />
     </svg>
