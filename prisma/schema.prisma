@@ -69,6 +69,7 @@ model Room {
   ownerPhone  String // เบอร์โทรเจ้าของ
   ownerLineId String? // Line ID เจ้าของ
   listingType ListingType @default(RENT)
+  saleType    String? // ประเภทการขาย เช่น ขายดาวน์ / มือ 1 / มือ 2 / เช่า
   salePrice   Float? // ราคาขาย
   rentPrice   Float? // ค่าเช่า/เดือน
   status      RoomStatus  @default(AVAILABLE)

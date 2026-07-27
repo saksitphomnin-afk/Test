@@ -54,6 +54,9 @@ export const ROOM_TYPE_OPTIONS = [
   "Penthouse",
 ] as const;
 
+/** ตัวเลือกประเภทการขาย */
+export const SALE_TYPE_OPTIONS = ["ขายดาวน์", "มือ 1", "มือ 2", "เช่า"] as const;
+
 export function formatBaht(value?: number | null): string {
   if (value == null) return "-";
   return new Intl.NumberFormat("th-TH", {

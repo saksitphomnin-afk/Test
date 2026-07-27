@@ -4,7 +4,12 @@ import { useState, useTransition } from "react";
 import type { Room, RoomImage } from "@prisma/client";
 import { Input, Select, Textarea, FormRow } from "@/components/ui/Field";
 import { buttonClasses, LinkButton } from "@/components/ui/Button";
-import { STATUS_ORDER, STATUS_META, LISTING_META } from "@/lib/constants";
+import {
+  STATUS_ORDER,
+  STATUS_META,
+  LISTING_META,
+  SALE_TYPE_OPTIONS,
+} from "@/lib/constants";
 import { ExistingImages } from "@/components/ExistingImages";
 import { RoomTypeSelect } from "@/components/RoomTypeSelect";
 import { compressImages } from "@/lib/compressImage";
@@ -210,6 +215,20 @@ export function RoomForm({
                   </option>
                 ),
               )}
+            </Select>
+          </FormRow>
+          <FormRow label="ประเภทการขาย" htmlFor="saleType">
+            <Select
+              id="saleType"
+              name="saleType"
+              defaultValue={room?.saleType ?? ""}
+            >
+              <option value="">— ไม่ระบุ —</option>
+              {SALE_TYPE_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </Select>
           </FormRow>
           <FormRow label="สถานะห้อง" htmlFor="status">

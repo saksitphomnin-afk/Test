@@ -93,6 +93,7 @@ export default async function RoomDetailPage({
             <InfoRow label="เลขห้อง" value={room.roomNumber} />
             <InfoRow label="ตึก/อาคาร" value={room.tower} />
             <InfoRow label="ประเภทประกาศ" value={LISTING_META[room.listingType].label} />
+            <InfoRow label="ประเภทการขาย" value={room.saleType} />
             <InfoRow label="ประเภทห้อง" value={room.roomType} />
             <InfoRow label="ชั้น" value={room.floor} />
             <InfoRow

@@ -39,6 +39,7 @@ export async function PATCH(
       ownerPhone: d.ownerPhone,
       ownerLineId: d.ownerLineId || null,
       listingType: d.listingType,
+      saleType: d.saleType || null,
       status: d.status,
       salePrice: clean(d.salePrice),
       rentPrice: clean(d.rentPrice),
