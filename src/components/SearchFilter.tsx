@@ -7,6 +7,7 @@ import {
   STATUS_META,
   SIZE_RANGES,
   RENT_RANGES,
+  SALE_RANGES,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ type FilterPatch = {
   type?: string;
   size?: string;
   price?: string;
+  saleprice?: string;
 };
 
 export function SearchFilter({
@@ -35,10 +37,11 @@ export function SearchFilter({
   const activeType = params.get("type") ?? "";
   const activeSize = params.get("size") ?? "";
   const activePrice = params.get("price") ?? "";
+  const activeSalePrice = params.get("saleprice") ?? "";
 
   function apply(next: FilterPatch) {
     const sp = new URLSearchParams(params.toString());
-    for (const key of ["q", "status", "project", "type", "size", "price"] as const) {
+    for (const key of ["q", "status", "project", "type", "size", "price", "saleprice"] as const) {
       const val = next[key];
       if (val === undefined) continue;
       if (val) sp.set(key, val);
@@ -119,6 +122,19 @@ export function SearchFilter({
         >
           <option value="">ทุกช่วงค่าเช่า</option>
           {RENT_RANGES.map((r) => (
+            <option key={r.key} value={r.key}>
+              {r.label}
+            </option>
+          ))}
+        </PillSelect>
+
+        <PillSelect
+          value={activeSalePrice}
+          onChange={(v) => apply({ saleprice: v })}
+          className="min-w-40 flex-1 sm:flex-none"
+        >
+          <option value="">ทุกช่วงราคาขาย</option>
+          {SALE_RANGES.map((r) => (
             <option key={r.key} value={r.key}>
               {r.label}
             </option>

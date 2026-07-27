@@ -8,6 +8,7 @@ import {
   STATUS_ORDER,
   SIZE_RANGES,
   RENT_RANGES,
+  SALE_RANGES,
   rangeToFilter,
 } from "@/lib/constants";
 import { getDistinctProjectNames, getDistinctRoomTypes } from "@/lib/rooms";
@@ -24,6 +25,7 @@ export default async function Dashboard({
     type?: string;
     size?: string;
     price?: string;
+    saleprice?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -35,6 +37,7 @@ export default async function Dashboard({
   const roomType = sp.type || undefined;
   const sizeFilter = rangeToFilter(SIZE_RANGES, sp.size);
   const priceFilter = rangeToFilter(RENT_RANGES, sp.price);
+  const salePriceFilter = rangeToFilter(SALE_RANGES, sp.saleprice);
 
   const where: Prisma.RoomWhereInput = {};
   if (status && STATUS_ORDER.includes(status)) {
@@ -51,6 +54,9 @@ export default async function Dashboard({
   }
   if (priceFilter) {
     where.rentPrice = priceFilter;
+  }
+  if (salePriceFilter) {
+    where.salePrice = salePriceFilter;
   }
   if (q) {
     where.OR = [

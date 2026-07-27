@@ -51,6 +51,8 @@ export const ROOM_TYPE_OPTIONS = [
   "1Bedroom plus",
   "2Bedroom 2Bathroom",
   "2Bedroom 1Bathroom",
+  "Duplex",
+  "Loft",
   "Penthouse",
 ] as const;
 
@@ -122,6 +124,15 @@ export const RENT_RANGES: NumberRange[] = [
   { key: "25000-40000", label: "25,001 – 40,000", gte: 25001, lte: 40000 },
   { key: "40000-70000", label: "40,001 – 70,000", gte: 40001, lte: 70000 },
   { key: "70000-", label: "70,000 ขึ้นไป", gte: 70001 },
+];
+
+/** ช่วงราคาขาย (บาท) — ราคาเป็นจำนวนเต็ม ขอบเขตไม่ทับกัน */
+export const SALE_RANGES: NumberRange[] = [
+  { key: "0-2000000", label: "ไม่เกิน 2 ล้าน", lte: 2000000 },
+  { key: "2000000-5000000", label: "2 – 5 ล้าน", gte: 2000001, lte: 5000000 },
+  { key: "5000000-10000000", label: "5 – 10 ล้าน", gte: 5000001, lte: 10000000 },
+  { key: "10000000-20000000", label: "10 – 20 ล้าน", gte: 10000001, lte: 20000000 },
+  { key: "20000000-", label: "20 ล้านขึ้นไป", gte: 20000001 },
 ];
 
 /** แปลง key ของช่วง → เงื่อนไข Prisma { gte?, lte? } (คืน undefined ถ้า key ไม่ตรง) */
