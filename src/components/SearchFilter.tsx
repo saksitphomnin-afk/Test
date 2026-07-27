@@ -34,6 +34,7 @@ export function SearchFilter({
   const [isPending, startTransition] = useTransition();
   const [q, setQ] = useState(params.get("q") ?? "");
   const [focused, setFocused] = useState(false);
+  const [open, setOpen] = useState(false);
   const activeStatus = params.get("status") ?? "";
   const activeListing = params.get("listing") ?? "";
   const activeProject = params.get("project") ?? "";
@@ -65,6 +66,29 @@ export function SearchFilter({
     setQ(name);
     setFocused(false);
     apply({ q: name });
+  }
+
+  // นับจำนวนตัวกรองที่เลือกอยู่ (ไม่รวมช่องค้นหา) เพื่อโชว์บนปุ่ม "ตัวกรอง"
+  const activeCount = [
+    activeListing,
+    activeProject,
+    activeType,
+    activeSize,
+    activePrice,
+    activeSalePrice,
+    activeStatus,
+  ].filter(Boolean).length;
+
+  function clearFilters() {
+    apply({
+      listing: "",
+      project: "",
+      type: "",
+      size: "",
+      price: "",
+      saleprice: "",
+      status: "",
+    });
   }
 
   return (
@@ -120,12 +144,48 @@ export function SearchFilter({
         )}
       </form>
 
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-          <FilterIcon />
-          ตัวกรอง
+      <div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition",
+              open || activeCount > 0
+                ? "border-brand-300 bg-brand-50 text-brand-700"
+                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+            )}
+          >
+            <FilterIcon />
+            ตัวกรอง
+            {activeCount > 0 && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-xs font-semibold text-white">
+                {activeCount}
+              </span>
+            )}
+            <span
+              className={cn(
+                "text-gray-400 transition-transform",
+                open && "rotate-180",
+              )}
+            >
+              <ChevronIcon />
+            </span>
+          </button>
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm text-gray-500 hover:text-brand-600 hover:underline"
+            >
+              ล้างตัวกรอง
+            </button>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        {open && (
+          <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 p-3">
+            <div className="flex flex-wrap gap-2">
         <PillSelect
           value={activeListing}
           onChange={(v) => apply({ listing: v })}
@@ -213,7 +273,9 @@ export function SearchFilter({
             </option>
           ))}
         </PillSelect>
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   SIZE_RANGES,
   RENT_RANGES,
   SALE_RANGES,
+  ROOM_TYPE_OPTIONS,
   rangeToFilter,
 } from "@/lib/constants";
 import { getDistinctProjectNames, getDistinctRoomTypes } from "@/lib/rooms";
@@ -80,7 +81,7 @@ export default async function Dashboard({
     ];
   }
 
-  const [rooms, projects, roomTypes] = await Promise.all([
+  const [rooms, projects, dbRoomTypes] = await Promise.all([
     prisma.room.findMany({
       where,
       include: { images: { orderBy: { sortOrder: "asc" } } },
@@ -89,6 +90,15 @@ export default async function Dashboard({
     getDistinctProjectNames(),
     getDistinctRoomTypes(),
   ]);
+
+  // ตัวเลือกประเภทห้องในตัวกรอง = ประเภทมาตรฐาน (มี Duplex/Loft) + ประเภทที่พิมพ์เองใน DB
+  // เสมอ เพื่อให้ Duplex/Loft โผล่แม้ยังไม่มีห้องไหนใช้ค่านั้น
+  const roomTypes = [
+    ...ROOM_TYPE_OPTIONS,
+    ...dbRoomTypes.filter(
+      (t) => !(ROOM_TYPE_OPTIONS as readonly string[]).includes(t),
+    ),
+  ];
 
   return (
     <div className="space-y-6">
