@@ -19,6 +19,7 @@ type FilterPatch = {
   size?: string;
   price?: string;
   saleprice?: string;
+  listing?: string;
 };
 
 export function SearchFilter({
@@ -34,6 +35,7 @@ export function SearchFilter({
   const [q, setQ] = useState(params.get("q") ?? "");
   const [focused, setFocused] = useState(false);
   const activeStatus = params.get("status") ?? "";
+  const activeListing = params.get("listing") ?? "";
   const activeProject = params.get("project") ?? "";
   const activeType = params.get("type") ?? "";
   const activeSize = params.get("size") ?? "";
@@ -42,7 +44,7 @@ export function SearchFilter({
 
   function apply(next: FilterPatch) {
     const sp = new URLSearchParams(params.toString());
-    for (const key of ["q", "status", "project", "type", "size", "price", "saleprice"] as const) {
+    for (const key of ["q", "status", "project", "type", "size", "price", "saleprice", "listing"] as const) {
       const val = next[key];
       if (val === undefined) continue;
       if (val) sp.set(key, val);
@@ -124,6 +126,16 @@ export function SearchFilter({
           ตัวกรอง
         </div>
         <div className="flex flex-wrap gap-2">
+        <PillSelect
+          value={activeListing}
+          onChange={(v) => apply({ listing: v })}
+          className="min-w-32 flex-1 sm:flex-none"
+        >
+          <option value="">ขาย + เช่า (ทั้งหมด)</option>
+          <option value="sale">ขาย</option>
+          <option value="rent">ให้เช่า</option>
+        </PillSelect>
+
         <PillSelect
           value={activeProject}
           onChange={(v) => apply({ project: v })}

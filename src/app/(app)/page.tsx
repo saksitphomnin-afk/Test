@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import type { Prisma, RoomStatus } from "@prisma/client";
+import type { Prisma, RoomStatus, ListingType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { RoomCard } from "@/components/RoomCard";
 import { SearchFilter } from "@/components/SearchFilter";
@@ -26,6 +26,7 @@ export default async function Dashboard({
     size?: string;
     price?: string;
     saleprice?: string;
+    listing?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -38,8 +39,19 @@ export default async function Dashboard({
   const sizeFilter = rangeToFilter(SIZE_RANGES, sp.size);
   const priceFilter = rangeToFilter(RENT_RANGES, sp.price);
   const salePriceFilter = rangeToFilter(SALE_RANGES, sp.saleprice);
+  // ประกาศ "ขาย" ครอบทั้ง SALE และ BOTH (เช่า/ขาย) / "เช่า" ครอบ RENT และ BOTH
+  // เพื่อให้ห้องที่ทำทั้งเช่าและขายโผล่ทั้งสองฝั่ง ไม่ตกหล่น
+  const listingIn: ListingType[] | undefined =
+    sp.listing === "sale"
+      ? ["SALE", "BOTH"]
+      : sp.listing === "rent"
+        ? ["RENT", "BOTH"]
+        : undefined;
 
   const where: Prisma.RoomWhereInput = {};
+  if (listingIn) {
+    where.listingType = { in: listingIn };
+  }
   if (status && STATUS_ORDER.includes(status)) {
     where.status = status;
   }
