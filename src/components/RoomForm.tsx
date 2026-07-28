@@ -13,6 +13,7 @@ import {
 import { ExistingImages } from "@/components/ExistingImages";
 import { RoomTypeSelect } from "@/components/RoomTypeSelect";
 import { StationsField } from "@/components/StationsField";
+import { ProjectNameField } from "@/components/ProjectNameField";
 import { compressImages } from "@/lib/compressImage";
 
 function SubmitButton({
@@ -131,19 +132,10 @@ export function RoomForm({
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormRow label="ชื่อโครงการ" htmlFor="projectName" required>
-            <Input
-              id="projectName"
-              name="projectName"
-              list="projects-list"
-              defaultValue={room?.projectName}
-              placeholder="เช่น The Base Sukhumvit"
-              required
+            <ProjectNameField
+              projects={projects}
+              defaultValue={room?.projectName ?? ""}
             />
-            <datalist id="projects-list">
-              {projects.map((p) => (
-                <option key={p} value={p} />
-              ))}
-            </datalist>
           </FormRow>
           <FormRow label="เลขห้อง" htmlFor="roomNumber" required>
             <Input
