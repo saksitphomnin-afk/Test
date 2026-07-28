@@ -14,7 +14,10 @@ export default async function EditRoomPage({
   const [room, projects] = await Promise.all([
     prisma.room.findUnique({
       where: { id },
-      include: { images: { orderBy: { sortOrder: "asc" } } },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        stations: { orderBy: { distanceMeters: "asc" } },
+      },
     }),
     getDistinctProjectNames(),
   ]);
@@ -36,6 +39,10 @@ export default async function EditRoomPage({
         submitLabel="บันทึกการแก้ไข"
         cancelHref={`/rooms/${id}`}
         projects={projects}
+        stations={room.stations.map((s) => ({
+          station: s.station,
+          distanceMeters: s.distanceMeters,
+        }))}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import {
 } from "@/lib/constants";
 import { ExistingImages } from "@/components/ExistingImages";
 import { RoomTypeSelect } from "@/components/RoomTypeSelect";
+import { StationsField } from "@/components/StationsField";
 import { compressImages } from "@/lib/compressImage";
 
 function SubmitButton({
@@ -72,6 +73,7 @@ export function RoomForm({
   submitLabel = "บันทึก",
   cancelHref = "/",
   projects = [],
+  stations = [],
 }: {
   apiUrl: string;
   method?: "POST" | "PATCH";
@@ -80,6 +82,7 @@ export function RoomForm({
   submitLabel?: string;
   cancelHref?: string;
   projects?: string[];
+  stations?: { station: string; distanceMeters: number }[];
 }) {
   const [error, setError] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
@@ -266,6 +269,17 @@ export function RoomForm({
             </FormRow>
           </div>
         )}
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">
+          รถไฟฟ้าใกล้เคียง
+        </h2>
+        <p className="mb-4 text-sm text-gray-500">
+          เพิ่มสถานี BTS/MRT ที่อยู่ใกล้ พร้อมระยะห่าง (ดูจาก Google Maps) —
+          ใช้กรองหา “คอนโดติดรถไฟฟ้า” ให้ลูกค้าได้
+        </p>
+        <StationsField defaultStations={stations} />
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">

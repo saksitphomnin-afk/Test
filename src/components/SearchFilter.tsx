@@ -9,6 +9,7 @@ import {
   RENT_RANGES,
   SALE_RANGES,
 } from "@/lib/constants";
+import { stationsByLine } from "@/lib/stations";
 import { cn } from "@/lib/utils";
 
 type FilterPatch = {
@@ -20,6 +21,7 @@ type FilterPatch = {
   price?: string;
   saleprice?: string;
   listing?: string;
+  station?: string;
 };
 
 export function SearchFilter({
@@ -42,10 +44,11 @@ export function SearchFilter({
   const activeSize = params.get("size") ?? "";
   const activePrice = params.get("price") ?? "";
   const activeSalePrice = params.get("saleprice") ?? "";
+  const activeStation = params.get("station") ?? "";
 
   function apply(next: FilterPatch) {
     const sp = new URLSearchParams(params.toString());
-    for (const key of ["q", "status", "project", "type", "size", "price", "saleprice", "listing"] as const) {
+    for (const key of ["q", "status", "project", "type", "size", "price", "saleprice", "listing", "station"] as const) {
       const val = next[key];
       if (val === undefined) continue;
       if (val) sp.set(key, val);
@@ -77,6 +80,7 @@ export function SearchFilter({
     activePrice,
     activeSalePrice,
     activeStatus,
+    activeStation,
   ].filter(Boolean).length;
 
   function clearFilters() {
@@ -88,6 +92,7 @@ export function SearchFilter({
       price: "",
       saleprice: "",
       status: "",
+      station: "",
     });
   }
 
@@ -194,6 +199,23 @@ export function SearchFilter({
           <option value="">ขาย + เช่า (ทั้งหมด)</option>
           <option value="sale">ขาย</option>
           <option value="rent">ให้เช่า</option>
+        </PillSelect>
+
+        <PillSelect
+          value={activeStation}
+          onChange={(v) => apply({ station: v })}
+          className="min-w-40 flex-1 sm:flex-none"
+        >
+          <option value="">🚊 รถไฟฟ้าทั้งหมด</option>
+          {stationsByLine().map(({ line, stations }) => (
+            <optgroup key={line.key} label={line.label}>
+              {stations.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.nameTh}
+                </option>
+              ))}
+            </optgroup>
+          ))}
         </PillSelect>
 
         <PillSelect

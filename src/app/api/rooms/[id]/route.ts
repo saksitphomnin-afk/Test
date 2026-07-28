@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { parseRoom, clean, saveImages } from "@/lib/room-mutations";
+import { parseRoom, clean, saveImages, parseStations } from "@/lib/room-mutations";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +43,11 @@ export async function PATCH(
       status: d.status,
       salePrice: clean(d.salePrice),
       rentPrice: clean(d.rentPrice),
+      // เขียนทับรายการสถานีของห้องนี้ทั้งหมด (ลบเก่า → ใส่ใหม่)
+      stations: {
+        deleteMany: {},
+        create: parseStations(formData),
+      },
     },
   });
 

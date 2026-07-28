@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { uploadImage, isValidImage } from "@/lib/storage";
+import { getStation } from "@/lib/stations";
 
 export const roomSchema = z.object({
   // .trim() กันช่องว่างหน้า/ท้ายชื่อ ซึ่งทำให้ตัวกรองโครงการเทียบไม่ตรง
@@ -52,6 +53,44 @@ export function parseRoom(formData: FormData) {
 
 export function clean(n: number | undefined) {
   return n != null && !Number.isNaN(n) ? n : null;
+}
+
+/**
+ * แปลงฟิลด์ "stations" (JSON จากฟอร์ม) เป็นรายการสถานีที่ผ่านการตรวจสอบ
+ * รูปแบบที่รับ: [{ station: "BTS_...", distanceMeters: 250 }, ...]
+ * - ตัดสถานีที่ไม่รู้จัก / ระยะไม่ใช่ตัวเลขบวก ทิ้ง
+ * - กันสถานีซ้ำ (เก็บอันแรก)
+ */
+export function parseStations(
+  formData: FormData,
+): { station: string; distanceMeters: number }[] {
+  const raw = formData.get("stations");
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  let arr: unknown;
+  try {
+    arr = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(arr)) return [];
+
+  const seen = new Set<string>();
+  const out: { station: string; distanceMeters: number }[] = [];
+  for (const item of arr) {
+    if (!item || typeof item !== "object") continue;
+    const station = (item as { station?: unknown }).station;
+    const distance = (item as { distanceMeters?: unknown }).distanceMeters;
+    if (typeof station !== "string" || !getStation(station)) continue;
+    if (seen.has(station)) continue;
+    const meters =
+      typeof distance === "number"
+        ? distance
+        : Number(String(distance).replace(/[^\d]/g, ""));
+    if (!Number.isFinite(meters) || meters <= 0) continue;
+    seen.add(station);
+    out.push({ station, distanceMeters: Math.round(meters) });
+  }
+  return out;
 }
 
 export async function saveImages(

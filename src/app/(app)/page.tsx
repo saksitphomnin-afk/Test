@@ -28,6 +28,7 @@ export default async function Dashboard({
     price?: string;
     saleprice?: string;
     listing?: string;
+    station?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -71,6 +72,10 @@ export default async function Dashboard({
   if (salePriceFilter) {
     where.salePrice = salePriceFilter;
   }
+  const station = sp.station || undefined;
+  if (station) {
+    where.stations = { some: { station } };
+  }
   if (q) {
     where.OR = [
       { projectName: { contains: q, mode: "insensitive" } },
@@ -84,12 +89,23 @@ export default async function Dashboard({
   const [rooms, projects, dbRoomTypes] = await Promise.all([
     prisma.room.findMany({
       where,
-      include: { images: { orderBy: { sortOrder: "asc" } } },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        stations: { orderBy: { distanceMeters: "asc" } },
+      },
       orderBy: { updatedAt: "desc" },
     }),
     getDistinctProjectNames(),
     getDistinctRoomTypes(),
   ]);
+
+  // ถ้ากรองสถานีอยู่ → เรียงห้องจากใกล้สถานีนั้น → ไกล
+  if (station) {
+    const distOf = (r: (typeof rooms)[number]) =>
+      r.stations.find((s) => s.station === station)?.distanceMeters ??
+      Number.POSITIVE_INFINITY;
+    rooms.sort((a, b) => distOf(a) - distOf(b));
+  }
 
   // ตัวเลือกประเภทห้องในตัวกรอง = ประเภทมาตรฐาน (มี Duplex/Loft) + ประเภทที่พิมพ์เองใน DB
   // เสมอ เพื่อให้ Duplex/Loft โผล่แม้ยังไม่มีห้องไหนใช้ค่านั้น
@@ -132,7 +148,7 @@ export default async function Dashboard({
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} />
+            <RoomCard key={room.id} room={room} highlightStation={station} />
           ))}
         </div>
       )}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { parseRoom, clean, saveImages } from "@/lib/room-mutations";
+import { parseRoom, clean, saveImages, parseStations } from "@/lib/room-mutations";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +62,7 @@ export async function POST(req: Request) {
       remark: d.remark || null,
       createdById: user.id,
       remarkLogs: { create: initialLogs },
+      stations: { create: parseStations(formData) },
     },
   });
 

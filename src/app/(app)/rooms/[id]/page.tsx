@@ -8,6 +8,7 @@ import { DeleteRoomButton } from "@/components/DeleteRoomButton";
 import { LinkButton } from "@/components/ui/Button";
 import { requireUser } from "@/lib/auth-helpers";
 import { LISTING_META, formatBaht } from "@/lib/constants";
+import { stationBadgeLabel, getStation, getLine } from "@/lib/stations";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export default async function RoomDetailPage({
     where: { id },
     include: {
       images: { orderBy: { sortOrder: "asc" } },
+      stations: { orderBy: { distanceMeters: "asc" } },
       remarkLogs: {
         orderBy: { createdAt: "desc" },
         include: { user: { select: { name: true } } },
@@ -124,6 +126,37 @@ export default async function RoomDetailPage({
               📞 โทรหาเจ้าของ
             </a>
           </div>
+
+          {room.stations.length > 0 && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h2 className="mb-3 text-base font-semibold text-gray-900">
+                🚊 รถไฟฟ้าใกล้เคียง
+              </h2>
+              <ul className="space-y-2">
+                {room.stations.map((s) => {
+                  const line = getLine(getStation(s.station)?.line ?? "");
+                  return (
+                    <li
+                      key={s.id}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className={line?.color ?? "text-gray-500"}>●</span>
+                        <span className="font-medium text-gray-900">
+                          {stationBadgeLabel(s.station)}
+                        </span>
+                      </span>
+                      <span className="shrink-0 tabular-nums text-gray-600">
+                        {s.distanceMeters >= 1000
+                          ? `${(s.distanceMeters / 1000).toFixed(1)} กม.`
+                          : `${s.distanceMeters} ม.`}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 

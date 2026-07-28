@@ -1,12 +1,34 @@
 import Link from "next/link";
-import type { Room, RoomImage } from "@prisma/client";
+import type { Room, RoomImage, RoomStation } from "@prisma/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RoomCardImages } from "@/components/RoomCardImages";
 import { LISTING_META, formatBaht, formatRelativeTime } from "@/lib/constants";
+import { stationBadgeLabel } from "@/lib/stations";
 
-type RoomWithImages = Room & { images: RoomImage[] };
+type RoomWithImages = Room & { images: RoomImage[]; stations?: RoomStation[] };
 
-export function RoomCard({ room }: { room: RoomWithImages }) {
+function formatDistance(meters: number): string {
+  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} กม.` : `${meters} ม.`;
+}
+
+export function RoomCard({
+  room,
+  highlightStation,
+}: {
+  room: RoomWithImages;
+  highlightStation?: string;
+}) {
+  // ถ้ากำลังกรองสถานีอยู่ โชว์สถานีนั้น; ไม่งั้นโชว์สถานีที่ใกล้สุด
+  const stations = room.stations ?? [];
+  const shownStation =
+    (highlightStation &&
+      stations.find((s) => s.station === highlightStation)) ||
+    stations.reduce<RoomStation | null>(
+      (nearest, s) =>
+        !nearest || s.distanceMeters < nearest.distanceMeters ? s : nearest,
+      null,
+    );
+
   const priceLabel =
     room.listingType === "SALE"
       ? formatBaht(room.salePrice)
@@ -60,6 +82,13 @@ export function RoomCard({ room }: { room: RoomWithImages }) {
               </span>
             ))}
           </div>
+        )}
+
+        {shownStation && (
+          <span className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-inset ring-sky-100">
+            🚊 {stationBadgeLabel(shownStation.station)} ·{" "}
+            {formatDistance(shownStation.distanceMeters)}
+          </span>
         )}
 
         <p className="mt-0.5 text-lg font-bold text-brand-700">
