@@ -38,10 +38,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 6,
   },
-  headerLine: { textAlign: "center", marginBottom: 3 },
+  headerLine: { textAlign: "right", marginBottom: 3 },
   clauseBlock: { marginBottom: 10 },
   clauseTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
-  para: { marginBottom: 4, textAlign: "justify" },
+  // ไม่ใช้ justify — ภาษาไทยไม่มีช่องว่างระหว่างคำตามธรรมชาติ ทำให้ react-pdf
+  // ยืดช่องว่างที่มีอยู่ไม่กี่จุดจนห่างผิดปกติในบรรทัดที่มีคำน้อย
+  para: { marginBottom: 4, textAlign: "left" },
   // signatures
   signWrap: { marginTop: 28 },
   signRow: {
@@ -113,16 +115,17 @@ function leaseBlocks(d: ContractData): Block[] {
   // flush = ชิดขอบเสมอหัวข้อใหญ่ (บรรทัดต่อเนื่องของข้อเดียวกัน)
   // nested = เยื้องลึกกว่าปกติ (รายการย่อยที่ซ้อนอยู่ใต้ข้อ เช่น บัญชีธนาคาร)
   const p = (text: string, mode: ParaMode = "indent") => ({ text, mode });
-  // ข้อ 1 และ 3 ไม่มีเลขข้อย่อย (x.y) ในเทมเพลตต้นฉบับ — ทุกบรรทัดจึงชิดขอบทั้งหมด
+  // ข้อ 1 และ 3 ไม่มีเลขข้อย่อย (x.y) ในเทมเพลตต้นฉบับ — บรรทัดต่อเนื่องจึงชิดขอบ
+  // (บรรทัดที่ขึ้นข้อความ/ตัวละครใหม่ เช่น "ผู้ให้เช่า.../และผู้เช่า..." ยังเยื้องเหมือนข้ออื่น)
   const flush = (text: string) => p(text, "flush");
   return [
     {
       title: "1. คู่สัญญา",
       paras: [
-        flush(`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`),
+        p(`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`),
         flush(`ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)}`),
         flush('ต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า"'),
-        flush(`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`),
+        p(`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`),
         flush("ทั้งสองฝ่ายตกลงทำสัญญาโดยมีรายละเอียดดังต่อไปนี้"),
       ],
     },
