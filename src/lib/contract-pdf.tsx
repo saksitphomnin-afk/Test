@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   clauseTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
   // เยื้องเฉพาะ "บรรทัดแรก" ของย่อหน้า (เช่น 5.1) ส่วนบรรทัดที่ตัดขึ้นใหม่
   // กลับมาชิดขอบตรงกับหัวข้อใหญ่ ตามต้นฉบับ
-  para: { marginBottom: 4, textIndent: 24, textAlign: "justify" },
+  para: { marginBottom: 4, textIndent: 36, textAlign: "justify" },
   indent: { marginLeft: 40, textIndent: 0 },
   // signatures
   signWrap: { marginTop: 28 },
