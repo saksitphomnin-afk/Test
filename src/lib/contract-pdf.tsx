@@ -23,7 +23,7 @@ export type { Lang };
 const styles = StyleSheet.create({
   page: {
     fontFamily: "THSarabun",
-    fontSize: 15,
+    fontSize: 16,
     padding: 48,
     color: "#111827",
     lineHeight: 1.45,
@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 30,
   },
-  signBox: { width: "45%", alignItems: "center" },
-  signCaption: { marginTop: 2 },
+  signBox: { width: "48%" },
+  signLineText: { marginBottom: 8 },
   footer: {
     position: "absolute",
     bottom: 24,
@@ -206,11 +206,17 @@ function leaseBlocks(d: ContractData): Block[] {
   ];
 }
 
-function SignBox({ caption }: { caption: string }) {
+function SignBox({ en, th }: { en?: string; th: string }) {
   return (
     <View style={styles.signBox}>
-      <BiText>ลงชื่อ .......................................................</BiText>
-      <BiText style={styles.signCaption}>{caption}</BiText>
+      {en && (
+        <BiText style={styles.signLineText}>
+          {`Signed ................................ "${en}"`}
+        </BiText>
+      )}
+      <BiText style={styles.signLineText}>
+        {`ลงชื่อ ................................ ${th}`}
+      </BiText>
     </View>
   );
 }
@@ -245,12 +251,12 @@ function LeaseContractDocument({ data }: { data: ContractData }) {
         {/* ลายเซ็น — เว้นบรรทัดไว้เซ็นมือ */}
         <View style={styles.signWrap} wrap={false}>
           <View style={styles.signRow}>
-            <SignBox caption="ผู้ให้เช่า (Lessor)" />
-            <SignBox caption="พยาน (Witness)" />
+            <SignBox en="Lessor" th="ผู้ให้เช่า" />
+            <SignBox en="Witness" th="พยาน" />
           </View>
           <View style={styles.signRow}>
-            <SignBox caption="ผู้เช่า (Lessee)" />
-            <SignBox caption="พยาน (Witness)" />
+            <SignBox en="Lessee" th="ผู้เช่า" />
+            <SignBox en="Witness" th="พยาน" />
           </View>
         </View>
 
@@ -302,8 +308,8 @@ function GenericContractDocument({
         })}
 
         <View style={styles.signRow}>
-          <SignBox caption={partyALabel} />
-          <SignBox caption={partyBLabel} />
+          <SignBox th={partyALabel} />
+          <SignBox th={partyBLabel} />
         </View>
 
         <BiText style={styles.footer}>

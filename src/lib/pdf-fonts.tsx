@@ -69,14 +69,13 @@ Font.registerHyphenationCallback((word) => {
   return thaiClusters(word);
 });
 
-// Angsana New ตัวเล็กกว่า TH Sarabun ที่ขนาดพอยต์เดียวกัน → ขยายตัวอังกฤษให้สูงใกล้เคียง
-export const ANGSANA_SCALE = 1.3;
+// ใช้ Angsana New เฉพาะ "ตัวอักษรอังกฤษ a–z/A–Z" เท่านั้น
+// ตัวเลข เครื่องหมาย วรรค และภาษาไทย → ใช้ TH Sarabun ทั้งหมด (ตามที่ผู้ใช้ต้องการ)
+const isLatinLetter = (c: string) => /[A-Za-z]/.test(c);
 
-const isThaiChar = (c: string) => c >= "฀" && c <= "๿";
-
-// แตกข้อความเป็นช่วงไทย/อังกฤษ (ช่องว่างเกาะกับช่วงก่อนหน้าเพื่อลดการสลับฟอนต์ถี่ ๆ)
-function scriptRuns(text: string): { thai: boolean; text: string }[] {
-  const runs: { thai: boolean; text: string }[] = [];
+// แตกข้อความเป็นช่วงอังกฤษ/ไม่ใช่อังกฤษ (ช่องว่างเกาะช่วงก่อนหน้าเพื่อลดการสลับฟอนต์ถี่ ๆ)
+function scriptRuns(text: string): { latin: boolean; text: string }[] {
+  const runs: { latin: boolean; text: string }[] = [];
   let mode: boolean | null = null;
   let buf = "";
   for (const ch of text) {
@@ -84,19 +83,19 @@ function scriptRuns(text: string): { thai: boolean; text: string }[] {
       buf += ch;
       continue;
     }
-    const th = isThaiChar(ch);
+    const latin = isLatinLetter(ch);
     if (mode === null) {
-      mode = th;
+      mode = latin;
       buf = ch;
-    } else if (th === mode) {
+    } else if (latin === mode) {
       buf += ch;
     } else {
-      runs.push({ thai: mode, text: buf });
-      mode = th;
+      runs.push({ latin: mode, text: buf });
+      mode = latin;
       buf = ch;
     }
   }
-  if (buf) runs.push({ thai: mode ?? true, text: buf });
+  if (buf) runs.push({ latin: mode ?? false, text: buf });
   return runs;
 }
 
@@ -120,25 +119,17 @@ export function BiText({
   style?: Style | Style[];
 }) {
   const text = nodeToText(children);
-  const flat = Array.isArray(style) ? Object.assign({}, ...style) : style;
-  const baseSize = (flat?.fontSize as number) ?? 15;
   const runs = scriptRuns(text);
   return (
     <Text style={style}>
-      {runs.map((r, i) =>
-        r.thai ? (
-          <Text key={i} style={{ fontFamily: "THSarabun" }}>
-            {r.text}
-          </Text>
-        ) : (
-          <Text
-            key={i}
-            style={{ fontFamily: "AngsanaNew", fontSize: baseSize * ANGSANA_SCALE }}
-          >
-            {r.text}
-          </Text>
-        ),
-      )}
+      {runs.map((r, i) => (
+        <Text
+          key={i}
+          style={{ fontFamily: r.latin ? "AngsanaNew" : "THSarabun" }}
+        >
+          {r.text}
+        </Text>
+      ))}
     </Text>
   );
 }
