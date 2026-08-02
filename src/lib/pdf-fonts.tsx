@@ -35,30 +35,22 @@ Font.register({
 // ทำให้ทั้งประโยคไทยกลายเป็น "คำเดียว" ยาว ๆ แล้วตัวอักษรท้ายบรรทัดหายตอนตัดบรรทัด
 // แก้ด้วยการบอกจุดตัดได้ = แตกคำไทยเป็น "คลัสเตอร์" (พยัญชนะ + สระ/วรรณยุกต์ที่เกาะอยู่)
 // โดยยึดสระหน้า (เ แ โ ใ ไ) ให้ติดกับพยัญชนะตัวถัดไป
+// สระนำหน้า (เ แ โ ใ ไ) = จุดเริ่มพยางค์ใหม่เสมอ
 const isLeadingVowel = (c: string) => c >= "เ" && c <= "ไ";
-const isThaiCombining = (c: string) =>
-  c === "ั" ||
-  (c >= "ิ" && c <= "ฺ") ||
-  (c >= "็" && c <= "๎");
 
+// แตกคำไทยเป็น "พยางค์" โดยยอมให้ตัดบรรทัดได้เฉพาะ "หน้าสระนำ" เท่านั้น
+// → คำทั่วไปจะไม่ถูกตัดกลางคำ (เช่น "ทั้งหมด" อยู่เป็นก้อนเดียว ไม่เหลือ "มด" โดด ๆ)
+// แต่ประโยคยาว ๆ ยังตัดบรรทัดได้ที่ขึ้นพยางค์ใหม่ (กันตัวอักษรท้ายบรรทัดหาย)
 function thaiClusters(word: string): string[] {
   const clusters: string[] = [];
   let cur = "";
   for (const ch of word) {
-    if (cur === "") {
+    if (cur !== "" && isLeadingVowel(ch)) {
+      clusters.push(cur);
       cur = ch;
-      continue;
-    }
-    if (isThaiCombining(ch)) {
+    } else {
       cur += ch;
-      continue;
     }
-    if (isLeadingVowel(cur[cur.length - 1])) {
-      cur += ch;
-      continue;
-    }
-    clusters.push(cur);
-    cur = ch;
   }
   if (cur) clusters.push(cur);
   return clusters;

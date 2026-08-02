@@ -91,12 +91,19 @@ function bahtWithWords(v?: string): string {
 // ~10 ช่องว่าง ≈ 1 แท็บ ส่วนบรรทัดที่ตัดขึ้นใหม่จะชิดขอบตรงกับหัวข้อใหญ่
 const FIRST_LINE_INDENT = "\u00A0".repeat(12);
 
+// \u0E1C\u0E39\u0E01\u0E40\u0E25\u0E02\u0E02\u0E49\u0E2D (\u0E40\u0E0A\u0E48\u0E19 "9.1") \u0E43\u0E2B\u0E49\u0E15\u0E34\u0E14\u0E01\u0E31\u0E1A\u0E04\u0E33\u0E41\u0E23\u0E01\u0E14\u0E49\u0E27\u0E22 non-breaking space \u2014 \u0E01\u0E31\u0E19 react-pdf
+// \u0E14\u0E31\u0E19\u0E04\u0E33\u0E41\u0E23\u0E01 (\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E49\u0E2D\u0E19\u0E22\u0E32\u0E27) \u0E25\u0E07\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B\u0E08\u0E19\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E40\u0E25\u0E02\u0E02\u0E49\u0E2D\u0E42\u0E14\u0E14\u0E2D\u0E22\u0E39\u0E48\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27
+function glueClauseNumber(text: string): string {
+  return text.replace(/^(\d+(?:\.\d+)?)\s+/, "$1\u00A0");
+}
+
 // ==================== สัญญาเช่า (ตามเทมเพลตผู้ใช้ 14 ข้อ) ====================
 
-type Block = { title: string; paras: { text: string; indent?: boolean }[] };
+type Block = { title: string; paras: { text: string; flush?: boolean }[] };
 
 function leaseBlocks(d: ContractData): Block[] {
-  const p = (text: string, indent = false) => ({ text, indent });
+  // flush = true → ชิดขอบเสมอหัวข้อใหญ่ (ไม่เยื้องบรรทัดแรก) สำหรับบรรทัดต่อเนื่องของข้อ
+  const p = (text: string, flush = false) => ({ text, flush });
   return [
     {
       title: "1. คู่สัญญา",
@@ -128,11 +135,11 @@ function leaseBlocks(d: ContractData): Block[] {
       title: "4. ค่าเช่า/ค่าส่วนกลาง และค่าใช้จ่ายของนิติบุคคลอาคารชุด",
       paras: [
         p(`4.1 ผู้เช่าตกลงชำระค่าเช่าเดือนละ ${bahtWithWords(d.monthlyRent)}`),
-        p(`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`),
-        p(`ธนาคาร ${or(d.bankName)}`, true),
-        p(`ชื่อบัญชี ${or(d.bankAccountName)}`, true),
-        p(`เลขที่บัญชี ${or(d.bankAccountNumber)}`, true),
-        p('การชำระถือว่าสมบูรณ์เมื่อเงินเข้าบัญชีของ "ผู้ให้เช่า" เรียบร้อยแล้ว'),
+        p(`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`, true),
+        p(`ธนาคาร ${or(d.bankName)}`),
+        p(`ชื่อบัญชี ${or(d.bankAccountName)}`),
+        p(`เลขที่บัญชี ${or(d.bankAccountNumber)}`),
+        p('การชำระถือว่าสมบูรณ์เมื่อเงินเข้าบัญชีของ "ผู้ให้เช่า" เรียบร้อยแล้ว', true),
         p("4.2 ผู้ให้เช่าตกลงเป็นผู้รับผิดชอบชำระ ค่าส่วนกลาง และค่าใช้จ่ายอื่นใดที่นิติบุคคลอาคารชุดเรียกเก็บ ซึ่งเกิดขึ้นหรือมีหน้าที่ต้องชำระในระหว่างอายุสัญญาเช่าฉบับนี้ ทั้งนี้ เว้นแต่คู่สัญญาทั้งสองฝ่ายจะได้ตกลงกันไว้เป็นอย่างอื่นเป็นลายลักษณ์อักษร"),
       ],
     },
@@ -252,11 +259,14 @@ function LeaseContractDocument({ data }: { data: ContractData }) {
         {blocks.map((b) => (
           <View key={b.title} style={styles.clauseBlock} wrap={false}>
             <BiText style={styles.clauseTitle}>{b.title}</BiText>
-            {b.paras.map((para, i) => (
-              <BiText key={i} style={styles.para}>
-                {FIRST_LINE_INDENT + para.text}
-              </BiText>
-            ))}
+            {b.paras.map((para, i) => {
+              const text = glueClauseNumber(para.text);
+              return (
+                <BiText key={i} style={styles.para}>
+                  {para.flush ? text : FIRST_LINE_INDENT + text}
+                </BiText>
+              );
+            })}
           </View>
         ))}
 
