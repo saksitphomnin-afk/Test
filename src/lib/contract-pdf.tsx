@@ -38,7 +38,6 @@ const styles = StyleSheet.create({
   clauseBlock: { marginBottom: 10 },
   clauseTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
   para: { marginBottom: 4, textAlign: "justify" },
-  indent: { marginLeft: 40 },
   // signatures
   signWrap: { marginTop: 28 },
   signRow: {
@@ -46,8 +45,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 30,
   },
-  signBox: { width: "48%" },
-  signLineText: { marginBottom: 8 },
+  signBox: { width: "47%" },
+  signLine: { flexDirection: "row", alignItems: "flex-end", marginBottom: 12 },
+  signDash: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "#111827",
+    marginHorizontal: 4,
+    marginBottom: 3,
+  },
   footer: {
     position: "absolute",
     bottom: 24,
@@ -83,7 +89,7 @@ function bahtWithWords(v?: string): string {
 // เยื้องบรรทัดแรกของย่อหน้า (เช่น 5.1) ด้วยช่องว่างนำ — ใช้แทน textIndent เพราะ
 // @react-pdf ไม่สนใจ textIndent เมื่อข้อความอยู่ใน nested <Text> (ซึ่ง BiText ใช้เสมอ)
 // ~10 ช่องว่าง ≈ 1 แท็บ ส่วนบรรทัดที่ตัดขึ้นใหม่จะชิดขอบตรงกับหัวข้อใหญ่
-const FIRST_LINE_INDENT = "          ";
+const FIRST_LINE_INDENT = "\u00A0".repeat(12);
 
 // ==================== สัญญาเช่า (ตามเทมเพลตผู้ใช้ 14 ข้อ) ====================
 
@@ -211,17 +217,21 @@ function leaseBlocks(d: ContractData): Block[] {
   ];
 }
 
+function SignLine({ label, role }: { label: string; role: string }) {
+  return (
+    <View style={styles.signLine}>
+      <BiText>{label}</BiText>
+      <View style={styles.signDash} />
+      <BiText>{role}</BiText>
+    </View>
+  );
+}
+
 function SignBox({ en, th }: { en?: string; th: string }) {
   return (
     <View style={styles.signBox}>
-      {en && (
-        <BiText style={styles.signLineText}>
-          {`Signed ................................ "${en}"`}
-        </BiText>
-      )}
-      <BiText style={styles.signLineText}>
-        {`ลงชื่อ ................................ ${th}`}
-      </BiText>
+      {en && <SignLine label="Signed" role={`"${en}"`} />}
+      <SignLine label="ลงชื่อ" role={th} />
     </View>
   );
 }
@@ -243,11 +253,8 @@ function LeaseContractDocument({ data }: { data: ContractData }) {
           <View key={b.title} style={styles.clauseBlock} wrap={false}>
             <BiText style={styles.clauseTitle}>{b.title}</BiText>
             {b.paras.map((para, i) => (
-              <BiText
-                key={i}
-                style={para.indent ? [styles.para, styles.indent] : styles.para}
-              >
-                {para.indent ? para.text : FIRST_LINE_INDENT + para.text}
+              <BiText key={i} style={styles.para}>
+                {FIRST_LINE_INDENT + para.text}
               </BiText>
             ))}
           </View>
