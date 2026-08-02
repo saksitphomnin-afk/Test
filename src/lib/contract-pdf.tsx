@@ -37,10 +37,8 @@ const styles = StyleSheet.create({
   headerLine: { textAlign: "center", marginBottom: 3 },
   clauseBlock: { marginBottom: 10 },
   clauseTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
-  // เยื้องเฉพาะ "บรรทัดแรก" ของย่อหน้า (เช่น 5.1) ส่วนบรรทัดที่ตัดขึ้นใหม่
-  // กลับมาชิดขอบตรงกับหัวข้อใหญ่ ตามต้นฉบับ
-  para: { marginBottom: 4, textIndent: 36, textAlign: "justify" },
-  indent: { marginLeft: 40, textIndent: 0 },
+  para: { marginBottom: 4, textAlign: "justify" },
+  indent: { marginLeft: 40 },
   // signatures
   signWrap: { marginTop: 28 },
   signRow: {
@@ -81,6 +79,11 @@ function bahtWithWords(v?: string): string {
   if (!v || !v.trim()) return `${num} บาท (………………………………)`;
   return `${num} บาท (${bahtText(v)})`;
 }
+
+// เยื้องบรรทัดแรกของย่อหน้า (เช่น 5.1) ด้วยช่องว่างนำ — ใช้แทน textIndent เพราะ
+// @react-pdf ไม่สนใจ textIndent เมื่อข้อความอยู่ใน nested <Text> (ซึ่ง BiText ใช้เสมอ)
+// ~10 ช่องว่าง ≈ 1 แท็บ ส่วนบรรทัดที่ตัดขึ้นใหม่จะชิดขอบตรงกับหัวข้อใหญ่
+const FIRST_LINE_INDENT = "          ";
 
 // ==================== สัญญาเช่า (ตามเทมเพลตผู้ใช้ 14 ข้อ) ====================
 
@@ -244,7 +247,7 @@ function LeaseContractDocument({ data }: { data: ContractData }) {
                 key={i}
                 style={para.indent ? [styles.para, styles.indent] : styles.para}
               >
-                {para.text}
+                {para.indent ? para.text : FIRST_LINE_INDENT + para.text}
               </BiText>
             ))}
           </View>
