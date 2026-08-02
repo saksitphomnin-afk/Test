@@ -37,9 +37,10 @@ const styles = StyleSheet.create({
   headerLine: { textAlign: "center", marginBottom: 3 },
   clauseBlock: { marginBottom: 10 },
   clauseTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
-  // เนื้อหาใต้หัวข้อเยื้องเข้าไป (หัวข้อ 1. 2. 3. อยู่ริม) ตามต้นฉบับ
-  para: { marginBottom: 4, marginLeft: 24, textAlign: "justify" },
-  indent: { marginLeft: 48 },
+  // เยื้องเฉพาะ "บรรทัดแรก" ของย่อหน้า (เช่น 5.1) ส่วนบรรทัดที่ตัดขึ้นใหม่
+  // กลับมาชิดขอบตรงกับหัวข้อใหญ่ ตามต้นฉบับ
+  para: { marginBottom: 4, textIndent: 24, textAlign: "justify" },
+  indent: { marginLeft: 40, textIndent: 0 },
   // signatures
   signWrap: { marginTop: 28 },
   signRow: {
