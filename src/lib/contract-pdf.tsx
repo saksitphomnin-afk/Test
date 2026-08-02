@@ -24,7 +24,11 @@ const styles = StyleSheet.create({
   page: {
     fontFamily: "THSarabun",
     fontSize: 16,
-    padding: 48,
+    // ขอบซ้าย 3ซม./ขวา 2ซม./บน 2.5ซม./ล่าง 2ซม. (1ซม. = 28.3465pt)
+    paddingTop: 71,
+    paddingBottom: 57,
+    paddingLeft: 85,
+    paddingRight: 57,
     color: "#111827",
     lineHeight: 1.45,
   },
@@ -57,8 +61,8 @@ const styles = StyleSheet.create({
   footer: {
     position: "absolute",
     bottom: 24,
-    left: 48,
-    right: 48,
+    left: 85,
+    right: 57,
     textAlign: "center",
     fontSize: 10,
     color: "#9ca3af",
@@ -90,29 +94,36 @@ function bahtWithWords(v?: string): string {
 // @react-pdf ไม่สนใจ textIndent เมื่อข้อความอยู่ใน nested <Text> (ซึ่ง BiText ใช้เสมอ)
 // ~10 ช่องว่าง ≈ 1 แท็บ ส่วนบรรทัดที่ตัดขึ้นใหม่จะชิดขอบตรงกับหัวข้อใหญ่
 const FIRST_LINE_INDENT = "\u00A0".repeat(12);
+// เยื้องลึกกว่าปกติสำหรับรายการย่อยที่ซ้อนอยู่ใต้ข้อ (เช่น บัญชีธนาคารใต้ข้อ 4.1)
+const NESTED_INDENT = "\u00A0".repeat(20);
 
-// \u0E1C\u0E39\u0E01\u0E40\u0E25\u0E02\u0E02\u0E49\u0E2D (\u0E40\u0E0A\u0E48\u0E19 "9.1") \u0E43\u0E2B\u0E49\u0E15\u0E34\u0E14\u0E01\u0E31\u0E1A\u0E04\u0E33\u0E41\u0E23\u0E01\u0E14\u0E49\u0E27\u0E22 non-breaking space \u2014 \u0E01\u0E31\u0E19 react-pdf
-// \u0E14\u0E31\u0E19\u0E04\u0E33\u0E41\u0E23\u0E01 (\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E49\u0E2D\u0E19\u0E22\u0E32\u0E27) \u0E25\u0E07\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B\u0E08\u0E19\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E40\u0E25\u0E02\u0E02\u0E49\u0E2D\u0E42\u0E14\u0E14\u0E2D\u0E22\u0E39\u0E48\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27
+// ผูกเลขข้อ (เช่น "9.1") ให้ติดกับคำแรกด้วย non-breaking space — กัน react-pdf
+// ดันคำแรก (ที่เป็นก้อนยาว) ลงบรรทัดถัดไปจนเหลือเลขข้อโดดอยู่บรรทัดเดียว
 function glueClauseNumber(text: string): string {
   return text.replace(/^(\d+(?:\.\d+)?)\s+/, "$1\u00A0");
 }
 
 // ==================== สัญญาเช่า (ตามเทมเพลตผู้ใช้ 14 ข้อ) ====================
 
-type Block = { title: string; paras: { text: string; flush?: boolean }[] };
+type ParaMode = "indent" | "flush" | "nested";
+type Block = { title: string; paras: { text: string; mode: ParaMode }[] };
 
 function leaseBlocks(d: ContractData): Block[] {
-  // flush = true → ชิดขอบเสมอหัวข้อใหญ่ (ไม่เยื้องบรรทัดแรก) สำหรับบรรทัดต่อเนื่องของข้อ
-  const p = (text: string, flush = false) => ({ text, flush });
+  // indent (ค่าเริ่มต้น) = เยื้องบรรทัดแรก 1 แท็บ
+  // flush = ชิดขอบเสมอหัวข้อใหญ่ (บรรทัดต่อเนื่องของข้อเดียวกัน)
+  // nested = เยื้องลึกกว่าปกติ (รายการย่อยที่ซ้อนอยู่ใต้ข้อ เช่น บัญชีธนาคาร)
+  const p = (text: string, mode: ParaMode = "indent") => ({ text, mode });
+  // ข้อ 1 และ 3 ไม่มีเลขข้อย่อย (x.y) ในเทมเพลตต้นฉบับ — ทุกบรรทัดจึงชิดขอบทั้งหมด
+  const flush = (text: string) => p(text, "flush");
   return [
     {
       title: "1. คู่สัญญา",
       paras: [
-        p(`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`),
-        p(`ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)}`),
-        p('ต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า"'),
-        p(`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`),
-        p("ทั้งสองฝ่ายตกลงทำสัญญาโดยมีรายละเอียดดังต่อไปนี้"),
+        flush(`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`),
+        flush(`ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)}`),
+        flush('ต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า"'),
+        flush(`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`),
+        flush("ทั้งสองฝ่ายตกลงทำสัญญาโดยมีรายละเอียดดังต่อไปนี้"),
       ],
     },
     {
@@ -125,21 +136,21 @@ function leaseBlocks(d: ContractData): Block[] {
     {
       title: "3. ระยะเวลาการเช่า",
       paras: [
-        p(`สัญญาเช่ามีกำหนด ${or(d.durationMonths)} เดือน`),
-        p(`เริ่มตั้งแต่วันที่ ${thaiDate(d.startDate)}`),
-        p(`สิ้นสุดวันที่ ${thaiDate(d.endDate)}`),
-        p("เมื่อครบกำหนด หากประสงค์จะต่อสัญญา ทั้งสองฝ่ายต้องตกลงกันเป็นลายลักษณ์อักษรก่อนสัญญาสิ้นสุด"),
+        flush(`สัญญาเช่ามีกำหนด ${or(d.durationMonths)} เดือน`),
+        flush(`เริ่มตั้งแต่วันที่ ${thaiDate(d.startDate)}`),
+        flush(`สิ้นสุดวันที่ ${thaiDate(d.endDate)}`),
+        flush("เมื่อครบกำหนด หากประสงค์จะต่อสัญญา ทั้งสองฝ่ายต้องตกลงกันเป็นลายลักษณ์อักษรก่อนสัญญาสิ้นสุด"),
       ],
     },
     {
       title: "4. ค่าเช่า/ค่าส่วนกลาง และค่าใช้จ่ายของนิติบุคคลอาคารชุด",
       paras: [
         p(`4.1 ผู้เช่าตกลงชำระค่าเช่าเดือนละ ${bahtWithWords(d.monthlyRent)}`),
-        p(`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`, true),
-        p(`ธนาคาร ${or(d.bankName)}`),
-        p(`ชื่อบัญชี ${or(d.bankAccountName)}`),
-        p(`เลขที่บัญชี ${or(d.bankAccountNumber)}`),
-        p('การชำระถือว่าสมบูรณ์เมื่อเงินเข้าบัญชีของ "ผู้ให้เช่า" เรียบร้อยแล้ว', true),
+        flush(`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`),
+        p(`ธนาคาร ${or(d.bankName)}`, "nested"),
+        p(`ชื่อบัญชี ${or(d.bankAccountName)}`, "nested"),
+        p(`เลขที่บัญชี ${or(d.bankAccountNumber)}`, "nested"),
+        flush('การชำระถือว่าสมบูรณ์เมื่อเงินเข้าบัญชีของ "ผู้ให้เช่า" เรียบร้อยแล้ว'),
         p("4.2 ผู้ให้เช่าตกลงเป็นผู้รับผิดชอบชำระ ค่าส่วนกลาง และค่าใช้จ่ายอื่นใดที่นิติบุคคลอาคารชุดเรียกเก็บ ซึ่งเกิดขึ้นหรือมีหน้าที่ต้องชำระในระหว่างอายุสัญญาเช่าฉบับนี้ ทั้งนี้ เว้นแต่คู่สัญญาทั้งสองฝ่ายจะได้ตกลงกันไว้เป็นอย่างอื่นเป็นลายลักษณ์อักษร"),
       ],
     },
@@ -261,9 +272,15 @@ function LeaseContractDocument({ data }: { data: ContractData }) {
             <BiText style={styles.clauseTitle}>{b.title}</BiText>
             {b.paras.map((para, i) => {
               const text = glueClauseNumber(para.text);
+              const prefix =
+                para.mode === "flush"
+                  ? ""
+                  : para.mode === "nested"
+                    ? NESTED_INDENT
+                    : FIRST_LINE_INDENT;
               return (
                 <BiText key={i} style={styles.para}>
-                  {para.flush ? text : FIRST_LINE_INDENT + text}
+                  {prefix + text}
                 </BiText>
               );
             })}
