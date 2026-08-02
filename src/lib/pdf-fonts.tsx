@@ -125,3 +125,36 @@ export function BiText({
     </Text>
   );
 }
+
+export type RichSegment = { text: string; bold?: boolean };
+
+/**
+ * เหมือน BiText แต่รับ "ส่วนย่อย" (segments) ที่แต่ละส่วนเลือกได้ว่าจะตัวหนา (bold) หรือไม่
+ * ใช้กับย่อหน้าสัญญาที่ผสมข้อความมาตรฐาน (ปกติ) กับค่าที่ทีมกรอกเอง (ตัวหนา)
+ * เช่น ["ผู้ให้เช่า ชื่อ-นามสกุล ", {text: "นาง เกษร", bold: true}, " เลขประจำตัวประชาชน ", ...]
+ */
+export function RichText({
+  segments,
+  style,
+}: {
+  segments: RichSegment[];
+  style?: Style | Style[];
+}) {
+  return (
+    <Text style={style}>
+      {segments.map((seg, si) =>
+        scriptRuns(seg.text).map((r, ri) => (
+          <Text
+            key={`${si}-${ri}`}
+            style={{
+              fontFamily: r.latin ? "AngsanaNew" : "THSarabun",
+              fontWeight: seg.bold ? "bold" : undefined,
+            }}
+          >
+            {r.text}
+          </Text>
+        )),
+      )}
+    </Text>
+  );
+}

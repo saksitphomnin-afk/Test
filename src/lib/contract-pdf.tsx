@@ -16,7 +16,7 @@ import {
   type Lang,
 } from "@/lib/lease-clauses";
 import { CONTRACT_META } from "@/lib/constants";
-import { BiText } from "@/lib/pdf-fonts";
+import { BiText, RichText, type RichSegment } from "@/lib/pdf-fonts";
 
 export type { Lang };
 
@@ -81,7 +81,8 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row", marginBottom: 3 },
   label: { width: "35%", color: "#6b7280" },
-  value: { width: "65%" },
+  // ตัวหนา — เน้นค่าที่ทีมกรอกก่อนออกสัญญาให้ต่างจากป้ายชื่อฟิลด์
+  value: { width: "65%", fontWeight: "bold" },
 });
 
 // ==================== เงินตรา + คำอ่านไทย ====================
@@ -101,58 +102,76 @@ const NESTED_INDENT = "\u00A0".repeat(20);
 
 // ผูกเลขข้อ (เช่น "9.1") ให้ติดกับคำแรกด้วย non-breaking space — กัน react-pdf
 // ดันคำแรก (ที่เป็นก้อนยาว) ลงบรรทัดถัดไปจนเหลือเลขข้อโดดอยู่บรรทัดเดียว
-function glueClauseNumber(text: string): string {
-  return text.replace(/^(\d+(?:\.\d+)?)\s+/, "$1\u00A0");
+// (แก้เฉพาะ segment แรกซึ่งเป็นข้อความมาตรฐานเสมอ ไม่ใช่ค่าที่กรอกเอง)
+function glueClauseNumber(segs: RichSegment[]): RichSegment[] {
+  const [first, ...rest] = segs;
+  if (!first || first.bold) return segs;
+  const text = first.text.replace(/^(\d+(?:\.\d+)?)\s+/, "$1\u00A0");
+  return text === first.text ? segs : [{ ...first, text }, ...rest];
+}
+
+// Tagged template สร้าง segment: ข้อความมาตรฐานในเทมเพลต = ปกติ,
+// ค่าที่ ${...} แทรกเข้ามา (ข้อมูลที่ทีมกรอกก่อนออกสัญญา) = ตัวหนา
+function T(strings: TemplateStringsArray, ...values: string[]): RichSegment[] {
+  const segs: RichSegment[] = [];
+  strings.forEach((str, i) => {
+    if (str) segs.push({ text: str });
+    if (i < values.length) segs.push({ text: values[i], bold: true });
+  });
+  return segs;
 }
 
 // ==================== สัญญาเช่า (ตามเทมเพลตผู้ใช้ 14 ข้อ) ====================
 
 type ParaMode = "indent" | "flush" | "nested";
-type Block = { title: string; paras: { text: string; mode: ParaMode }[] };
+type Block = { title: string; paras: { segs: RichSegment[]; mode: ParaMode }[] };
 
 function leaseBlocks(d: ContractData): Block[] {
   // indent (ค่าเริ่มต้น) = เยื้องบรรทัดแรก 1 แท็บ
   // flush = ชิดขอบเสมอหัวข้อใหญ่ (บรรทัดต่อเนื่องของข้อเดียวกัน)
   // nested = เยื้องลึกกว่าปกติ (รายการย่อยที่ซ้อนอยู่ใต้ข้อ เช่น บัญชีธนาคาร)
-  const p = (text: string, mode: ParaMode = "indent") => ({ text, mode });
+  const p = (input: string | RichSegment[], mode: ParaMode = "indent") => ({
+    segs: typeof input === "string" ? [{ text: input }] : input,
+    mode,
+  });
   // ข้อ 1 และ 3 ไม่มีเลขข้อย่อย (x.y) ในเทมเพลตต้นฉบับ — บรรทัดต่อเนื่องจึงชิดขอบ
   // (บรรทัดที่ขึ้นข้อความ/ตัวละครใหม่ เช่น "ผู้ให้เช่า.../และผู้เช่า..." ยังเยื้องเหมือนข้ออื่น)
-  const flush = (text: string) => p(text, "flush");
+  const flush = (input: string | RichSegment[]) => p(input, "flush");
   return [
     {
       title: "1. คู่สัญญา",
       paras: [
-        p(`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`),
-        flush(`ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)}`),
+        p(T`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`),
+        flush(T`ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)}`),
         flush('ต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า"'),
-        p(`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`),
+        p(T`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`),
         flush("ทั้งสองฝ่ายตกลงทำสัญญาโดยมีรายละเอียดดังต่อไปนี้"),
       ],
     },
     {
       title: "2. ทรัพย์สินที่ให้เช่า",
       paras: [
-        p(`2.1 ผู้ให้เช่าตกลงให้ผู้เช่าเช่าห้องชุดเลขที่ ${or(d.propertyUnitNo)} ชั้น ${or(d.propertyFloor)} อาคาร ${or(d.propertyBuilding)} โครงการ ${or(d.propertyProject)} ที่ตั้ง ${or(d.propertyAddress)}`),
+        p(T`2.1 ผู้ให้เช่าตกลงให้ผู้เช่าเช่าห้องชุดเลขที่ ${or(d.propertyUnitNo)} ชั้น ${or(d.propertyFloor)} อาคาร ${or(d.propertyBuilding)} โครงการ ${or(d.propertyProject)} ที่ตั้ง ${or(d.propertyAddress)}`),
         p("รวมถึงทรัพย์สิน และอุปกรณ์ภายในห้องตามบัญชีรายการแนบท้าย ซึ่งถือเป็นส่วนหนึ่งของสัญญาฉบับนี้"),
       ],
     },
     {
       title: "3. ระยะเวลาการเช่า",
       paras: [
-        flush(`สัญญาเช่ามีกำหนด ${or(d.durationMonths)} เดือน`),
-        flush(`เริ่มตั้งแต่วันที่ ${thaiDate(d.startDate)}`),
-        flush(`สิ้นสุดวันที่ ${thaiDate(d.endDate)}`),
+        flush(T`สัญญาเช่ามีกำหนด ${or(d.durationMonths)} เดือน`),
+        flush(T`เริ่มตั้งแต่วันที่ ${thaiDate(d.startDate)}`),
+        flush(T`สิ้นสุดวันที่ ${thaiDate(d.endDate)}`),
         flush("เมื่อครบกำหนด หากประสงค์จะต่อสัญญา ทั้งสองฝ่ายต้องตกลงกันเป็นลายลักษณ์อักษรก่อนสัญญาสิ้นสุด"),
       ],
     },
     {
       title: "4. ค่าเช่า/ค่าส่วนกลาง และค่าใช้จ่ายของนิติบุคคลอาคารชุด",
       paras: [
-        p(`4.1 ผู้เช่าตกลงชำระค่าเช่าเดือนละ ${bahtWithWords(d.monthlyRent)}`),
-        flush(`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`),
-        p(`ธนาคาร ${or(d.bankName)}`, "nested"),
-        p(`ชื่อบัญชี ${or(d.bankAccountName)}`, "nested"),
-        p(`เลขที่บัญชี ${or(d.bankAccountNumber)}`, "nested"),
+        p(T`4.1 ผู้เช่าตกลงชำระค่าเช่าเดือนละ ${bahtWithWords(d.monthlyRent)}`),
+        flush(T`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`),
+        p(T`ธนาคาร ${or(d.bankName)}`, "nested"),
+        p(T`ชื่อบัญชี ${or(d.bankAccountName)}`, "nested"),
+        p(T`เลขที่บัญชี ${or(d.bankAccountNumber)}`, "nested"),
         flush('การชำระถือว่าสมบูรณ์เมื่อเงินเข้าบัญชีของ "ผู้ให้เช่า" เรียบร้อยแล้ว'),
         p("4.2 ผู้ให้เช่าตกลงเป็นผู้รับผิดชอบชำระ ค่าส่วนกลาง และค่าใช้จ่ายอื่นใดที่นิติบุคคลอาคารชุดเรียกเก็บ ซึ่งเกิดขึ้นหรือมีหน้าที่ต้องชำระในระหว่างอายุสัญญาเช่าฉบับนี้ ทั้งนี้ เว้นแต่คู่สัญญาทั้งสองฝ่ายจะได้ตกลงกันไว้เป็นอย่างอื่นเป็นลายลักษณ์อักษร"),
       ],
@@ -160,7 +179,7 @@ function leaseBlocks(d: ContractData): Block[] {
     {
       title: "5. เงินประกันและเงินล่วงหน้า",
       paras: [
-        p(`5.1 ผู้เช่าได้ชำระเงินประกันแก่ผู้ให้เช่า จำนวน ${bahtWithWords(d.depositAmount)} ในวันทำสัญญา โดยผู้ให้เช่าจะถือเงินประกันไว้ตลอดอายุสัญญา เพื่อเป็นหลักประกันการปฏิบัติตามสัญญา รวมถึงความเสียหาย หนี้สิน หรือค่าใช้จ่ายใด ๆ ที่ผู้เช่ามีหน้าที่รับผิดชอบตามสัญญา ผู้เช่าไม่สามารถนำเงินประกันมาหักชำระค่าเช่าหรือหนี้ที่ถึงกำหนดชำระได้ เว้นแต่ผู้ให้เช่าจะอนุญาตเป็นลายลักษณ์อักษร`),
+        p(T`5.1 ผู้เช่าได้ชำระเงินประกันแก่ผู้ให้เช่า จำนวน ${bahtWithWords(d.depositAmount)} ในวันทำสัญญา โดยผู้ให้เช่าจะถือเงินประกันไว้ตลอดอายุสัญญา เพื่อเป็นหลักประกันการปฏิบัติตามสัญญา รวมถึงความเสียหาย หนี้สิน หรือค่าใช้จ่ายใด ๆ ที่ผู้เช่ามีหน้าที่รับผิดชอบตามสัญญา ผู้เช่าไม่สามารถนำเงินประกันมาหักชำระค่าเช่าหรือหนี้ที่ถึงกำหนดชำระได้ เว้นแต่ผู้ให้เช่าจะอนุญาตเป็นลายลักษณ์อักษร`),
         p("5.2 ผู้ให้เช่าจะคืนเงินประกันภายใน 15 วัน หลังผู้เช่าคืนห้อง และตรวจสอบแล้วว่าไม่มีความเสียหายหรือค่าใช้จ่ายค้างชำระ โดยผู้เช่าอนุญาตให้หักค่าเสียหายหรือค่าใช้จ่ายที่ผู้เช่าต้องรับผิดชอบก่อนชำระเงินประกันคืนได้"),
       ],
     },
@@ -209,7 +228,7 @@ function leaseBlocks(d: ContractData): Block[] {
     {
       title: "11. การผิดนัดชำระค่าเช่า",
       paras: [
-        p(`11.1 หากผู้เช่าไม่ชำระค่าเช่าภายในกำหนด และค้างชำระเกิน ${or(d.lateDays)} วัน ผู้เช่าตกลงรับผิดชอบค่าปรับ ดอกเบี้ย หรือค่าใช้จ่ายอื่นที่เกี่ยวข้อง (ถ้ามี) ตามที่กฎหมายกำหนด และผู้ให้เช่ามีสิทธิเรียกร้องให้ผู้เช่าชำระหนี้ค้างดังกล่าว รวมถึงดำเนินการตามสิทธิและขั้นตอนที่กฎหมายกำหนด`),
+        p(T`11.1 หากผู้เช่าไม่ชำระค่าเช่าภายในกำหนด และค้างชำระเกิน ${or(d.lateDays)} วัน ผู้เช่าตกลงรับผิดชอบค่าปรับ ดอกเบี้ย หรือค่าใช้จ่ายอื่นที่เกี่ยวข้อง (ถ้ามี) ตามที่กฎหมายกำหนด และผู้ให้เช่ามีสิทธิเรียกร้องให้ผู้เช่าชำระหนี้ค้างดังกล่าว รวมถึงดำเนินการตามสิทธิและขั้นตอนที่กฎหมายกำหนด`),
         p("หากการผิดนัดดังกล่าวเข้าข่ายเป็นเหตุให้บอกเลิกสัญญาตามสัญญาฉบับนี้หรือกฎหมาย ผู้ให้เช่ามีสิทธิบอกเลิกสัญญาและดำเนินการตามกฎหมายต่อไป"),
       ],
     },
@@ -263,29 +282,25 @@ function LeaseContractDocument({ data }: { data: ContractData }) {
     <Document>
       <Page size="A4" style={styles.page} wrap>
         <Text style={styles.title}>สัญญาเช่า</Text>
-        <BiText style={styles.headerLine}>
-          {`ทำขึ้น ณ ${or(data.contractPlace)}`}
-        </BiText>
-        <BiText style={[styles.headerLine, { marginBottom: 14 }]}>
-          {`วันที่ ${thaiDate(data.contractDate)}`}
-        </BiText>
+        <RichText style={styles.headerLine} segments={T`ทำขึ้น ณ ${or(data.contractPlace)}`} />
+        <RichText
+          style={[styles.headerLine, { marginBottom: 14 }]}
+          segments={T`วันที่ ${thaiDate(data.contractDate)}`}
+        />
 
         {blocks.map((b) => (
           <View key={b.title} style={styles.clauseBlock} wrap={false}>
             <BiText style={styles.clauseTitle}>{b.title}</BiText>
             {b.paras.map((para, i) => {
-              const text = glueClauseNumber(para.text);
+              const segs = glueClauseNumber(para.segs);
               const prefix =
                 para.mode === "flush"
                   ? ""
                   : para.mode === "nested"
                     ? NESTED_INDENT
                     : FIRST_LINE_INDENT;
-              return (
-                <BiText key={i} style={styles.para}>
-                  {prefix + text}
-                </BiText>
-              );
+              const finalSegs = prefix ? [{ text: prefix }, ...segs] : segs;
+              return <RichText key={i} style={styles.para} segments={finalSegs} />;
             })}
           </View>
         ))}
