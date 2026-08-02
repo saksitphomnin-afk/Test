@@ -56,6 +56,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(rawName)}`,
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
     },
   });
 }

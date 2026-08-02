@@ -267,7 +267,7 @@ export function ContractForm({
           </LinkButton>
           {currentId && (
             <a
-              href={`/api/contract/${currentId}/pdf`}
+              href={`/api/contract/${currentId}/pdf?t=${Date.now()}`}
               target="_blank"
               rel="noopener noreferrer"
               className={buttonClasses("secondary", "md")}

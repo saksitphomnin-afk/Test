@@ -38,7 +38,9 @@ export async function GET(
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="contract-${contract.type.toLowerCase()}-${lang.toLowerCase()}-${id}.pdf"`,
+      "Content-Disposition": `attachment; filename="contract-${contract.type.toLowerCase()}-${id}.pdf"`,
+      // กันเบราว์เซอร์แคชไฟล์ PDF เดิม (URL เดิมทุกครั้ง) — โหลดครั้งหน้าได้ตัวล่าสุดเสมอ
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
     },
   });
 }
