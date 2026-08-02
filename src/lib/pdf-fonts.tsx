@@ -1,0 +1,144 @@
+import fs from "fs";
+import path from "path";
+import type { ReactNode } from "react";
+import { Font, Text } from "@react-pdf/renderer";
+import type { Style } from "@react-pdf/types";
+
+// ระบบฟอนต์กลางสำหรับเอกสาร PDF ทุกชนิด (สัญญา/ใบเสร็จ)
+// - ภาษาไทย  → TH Sarabun (ราชการ)
+// - ภาษาอังกฤษ/ตัวเลข → Angsana New
+// ฝังฟอนต์เป็น base64 data URL (กัน @react-pdf พึ่ง path/fetch ตอน runtime บน serverless)
+
+function dataUrl(file: string): string {
+  const filePath = path.join(process.cwd(), "public/fonts", file);
+  const base64 = fs.readFileSync(filePath).toString("base64");
+  return `data:font/ttf;base64,${base64}`;
+}
+
+Font.register({
+  family: "THSarabun",
+  fonts: [
+    { src: dataUrl("THSarabun-Regular.ttf") },
+    { src: dataUrl("THSarabun-Bold.ttf"), fontWeight: "bold" },
+  ],
+});
+
+Font.register({
+  family: "AngsanaNew",
+  fonts: [
+    { src: dataUrl("AngsanaNew-Regular.ttf") },
+    { src: dataUrl("AngsanaNew-Bold.ttf"), fontWeight: "bold" },
+  ],
+});
+
+// @react-pdf/textkit ตัดบรรทัดได้เฉพาะที่ช่องว่าง (space) — ภาษาไทยไม่มีช่องว่างระหว่างคำ
+// ทำให้ทั้งประโยคไทยกลายเป็น "คำเดียว" ยาว ๆ แล้วตัวอักษรท้ายบรรทัดหายตอนตัดบรรทัด
+// แก้ด้วยการบอกจุดตัดได้ = แตกคำไทยเป็น "คลัสเตอร์" (พยัญชนะ + สระ/วรรณยุกต์ที่เกาะอยู่)
+// โดยยึดสระหน้า (เ แ โ ใ ไ) ให้ติดกับพยัญชนะตัวถัดไป
+const isLeadingVowel = (c: string) => c >= "เ" && c <= "ไ";
+const isThaiCombining = (c: string) =>
+  c === "ั" ||
+  (c >= "ิ" && c <= "ฺ") ||
+  (c >= "็" && c <= "๎");
+
+function thaiClusters(word: string): string[] {
+  const clusters: string[] = [];
+  let cur = "";
+  for (const ch of word) {
+    if (cur === "") {
+      cur = ch;
+      continue;
+    }
+    if (isThaiCombining(ch)) {
+      cur += ch;
+      continue;
+    }
+    if (isLeadingVowel(cur[cur.length - 1])) {
+      cur += ch;
+      continue;
+    }
+    clusters.push(cur);
+    cur = ch;
+  }
+  if (cur) clusters.push(cur);
+  return clusters;
+}
+
+Font.registerHyphenationCallback((word) => {
+  if (!/[฀-๿]/.test(word)) return [word];
+  return thaiClusters(word);
+});
+
+// Angsana New ตัวเล็กกว่า TH Sarabun ที่ขนาดพอยต์เดียวกัน → ขยายตัวอังกฤษให้สูงใกล้เคียง
+export const ANGSANA_SCALE = 1.3;
+
+const isThaiChar = (c: string) => c >= "฀" && c <= "๿";
+
+// แตกข้อความเป็นช่วงไทย/อังกฤษ (ช่องว่างเกาะกับช่วงก่อนหน้าเพื่อลดการสลับฟอนต์ถี่ ๆ)
+function scriptRuns(text: string): { thai: boolean; text: string }[] {
+  const runs: { thai: boolean; text: string }[] = [];
+  let mode: boolean | null = null;
+  let buf = "";
+  for (const ch of text) {
+    if (/\s/.test(ch) && mode !== null) {
+      buf += ch;
+      continue;
+    }
+    const th = isThaiChar(ch);
+    if (mode === null) {
+      mode = th;
+      buf = ch;
+    } else if (th === mode) {
+      buf += ch;
+    } else {
+      runs.push({ thai: mode, text: buf });
+      mode = th;
+      buf = ch;
+    }
+  }
+  if (buf) runs.push({ thai: mode ?? true, text: buf });
+  return runs;
+}
+
+/**
+ * ข้อความสองภาษา — ตัวไทยใช้ TH Sarabun, ตัวอังกฤษ/ตัวเลขใช้ Angsana New (ขยายให้สูงเท่ากัน)
+ * ใช้แทน <Text> ทุกที่ที่ข้อความอาจปนไทย+อังกฤษ (เช่น ชื่อโครงการ "Ashton Chula - Silom")
+ * รับ style เดิม (fontSize/fontWeight/…) แล้วสลับเฉพาะ fontFamily ต่อช่วง
+ */
+function nodeToText(node: ReactNode): string {
+  if (node == null || node === false || node === true) return "";
+  if (Array.isArray(node)) return node.map(nodeToText).join("");
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  return "";
+}
+
+export function BiText({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: Style | Style[];
+}) {
+  const text = nodeToText(children);
+  const flat = Array.isArray(style) ? Object.assign({}, ...style) : style;
+  const baseSize = (flat?.fontSize as number) ?? 15;
+  const runs = scriptRuns(text);
+  return (
+    <Text style={style}>
+      {runs.map((r, i) =>
+        r.thai ? (
+          <Text key={i} style={{ fontFamily: "THSarabun" }}>
+            {r.text}
+          </Text>
+        ) : (
+          <Text
+            key={i}
+            style={{ fontFamily: "AngsanaNew", fontSize: baseSize * ANGSANA_SCALE }}
+          >
+            {r.text}
+          </Text>
+        ),
+      )}
+    </Text>
+  );
+}

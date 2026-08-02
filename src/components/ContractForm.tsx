@@ -16,14 +16,6 @@ import { Input, Textarea, FormRow, Select } from "@/components/ui/Field";
 import { buttonClasses, LinkButton } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-type PdfLang = "TH" | "EN" | "BOTH";
-
-const LANG_OPTIONS: { value: PdfLang; label: string }[] = [
-  { value: "BOTH", label: "ไทย + อังกฤษ" },
-  { value: "TH", label: "ไทย" },
-  { value: "EN", label: "อังกฤษ (English)" },
-];
-
 export type ContractCustomer = {
   id: string;
   code: string | null;
@@ -99,7 +91,6 @@ export function ContractForm({
   const [type, setType] = useState<ContractType>("RENT");
   const [savedIds, setSavedIds] =
     useState<Partial<Record<ContractType, string>>>(savedContractIds);
-  const [pdfLang, setPdfLang] = useState<PdfLang>("BOTH");
   const formRef = useRef<HTMLFormElement>(null);
 
   const customerMap = useMemo(
@@ -274,25 +265,9 @@ export function ContractForm({
           <LinkButton href={`/rooms/${roomId}`} variant="secondary">
             กลับ
           </LinkButton>
-          {currentId && type === "RENT" && (
-            <Select
-              value={pdfLang}
-              onChange={(e) => setPdfLang(e.target.value as PdfLang)}
-              className="w-auto"
-              aria-label="ภาษาของสัญญา PDF"
-            >
-              {LANG_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </Select>
-          )}
           {currentId && (
             <a
-              href={`/api/contract/${currentId}/pdf${
-                type === "RENT" ? `?lang=${pdfLang}` : ""
-              }`}
+              href={`/api/contract/${currentId}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
               className={buttonClasses("secondary", "md")}

@@ -1,36 +1,17 @@
-import fs from "fs";
-import path from "path";
 import {
   Document,
   Page,
   View,
   Text,
   StyleSheet,
-  Font,
   renderToBuffer,
 } from "@react-pdf/renderer";
 import { thaiDate, bahtNumber, bahtText } from "@/lib/lease-clauses";
-
-// อ่านไฟล์ฟอนต์ตอน module โหลด แล้วฝังเป็น base64 data URL — วิธีเดียวกับ contract-pdf.tsx
-// (ทำซ้ำในไฟล์นี้เพราะ @react-pdf/renderer ต้อง Font.register ในทุก entry ที่ render
-// เอกสารของตัวเอง และ fontDataUrl ไม่ได้ export ออกมาจาก contract-pdf.tsx)
-function fontDataUrl(file: string): string {
-  const filePath = path.join(process.cwd(), "public/fonts", file);
-  const base64 = fs.readFileSync(filePath).toString("base64");
-  return `data:font/ttf;base64,${base64}`;
-}
-
-Font.register({
-  family: "Sarabun",
-  fonts: [
-    { src: fontDataUrl("Sarabun-Regular.ttf") },
-    { src: fontDataUrl("Sarabun-Bold.ttf"), fontWeight: "bold" },
-  ],
-});
+import { BiText } from "@/lib/pdf-fonts";
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: "Sarabun",
+    fontFamily: "THSarabun",
     fontSize: 12,
     padding: 48,
     color: "#111827",
@@ -116,24 +97,24 @@ function ReceiptDocument({ receiptNo, payerName, roomLabel, bookingAmount }: Rec
         <Text style={styles.subtitle}>Booking Payment Receipt</Text>
 
         <View style={styles.metaRow}>
-          <Text>เลขที่ใบเสร็จ: {receiptNo}</Text>
+          <BiText>เลขที่ใบเสร็จ: {receiptNo}</BiText>
           <Text>วันที่: {today}</Text>
         </View>
 
         <View style={styles.box}>
           <View style={styles.row}>
             <Text style={styles.label}>ผู้จ่ายเงิน / ชื่อลูกค้า</Text>
-            <Text style={styles.value}>{payerName}</Text>
+            <BiText style={styles.value}>{payerName}</BiText>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>ห้อง</Text>
-            <Text style={styles.value}>{roomLabel}</Text>
+            <BiText style={styles.value}>{roomLabel}</BiText>
           </View>
 
           <View style={styles.amountBox}>
             <View style={styles.row}>
               <Text style={styles.label}>จำนวนเงิน</Text>
-              <Text style={styles.amountValue}>{amountText}</Text>
+              <BiText style={styles.amountValue}>{amountText}</BiText>
             </View>
             {amountWords && (
               <Text style={styles.amountWords}>({amountWords})</Text>

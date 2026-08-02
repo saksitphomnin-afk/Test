@@ -79,6 +79,11 @@ const rentPaymentSection: Section = {
     { name: "bankBranch", label: "สาขา / Branch" },
     { name: "bankAccountNumber", label: "เลขบัญชี / Account Number" },
     { name: "bankAccountName", label: "ชื่อบัญชี / Account Name" },
+    {
+      name: "lateDays",
+      label: "ผิดนัดชำระเกินกี่วันถือว่าผิดสัญญา (วัน)",
+      type: "number",
+    },
   ],
 };
 
