@@ -37,8 +37,9 @@ const styles = StyleSheet.create({
   headerLine: { textAlign: "center", marginBottom: 3 },
   clauseBlock: { marginBottom: 10 },
   clauseTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
-  para: { marginBottom: 4, textAlign: "justify" },
-  indent: { marginLeft: 16 },
+  // เนื้อหาใต้หัวข้อเยื้องเข้าไป (หัวข้อ 1. 2. 3. อยู่ริม) ตามต้นฉบับ
+  para: { marginBottom: 4, marginLeft: 24, textAlign: "justify" },
+  indent: { marginLeft: 48 },
   // signatures
   signWrap: { marginTop: 28 },
   signRow: {
