@@ -150,11 +150,19 @@ const HARD_SLICE_LIMIT = 16;
 // คำนวณ "ตำแหน่ง" ในข้อความที่ควรแทรกช่องว่างจริงไว้ข้างหน้า (ไม่แก้ข้อความจริง) —
 // แยกออกมาจากการแทรกจริง เพื่อให้ใช้ร่วมกับข้อความที่ประกอบจากหลาย segment ได้
 // (ดู breatheAcrossSegments) โดยไม่ขึ้นกับขอบเขต segment ใด ๆ
+// เยื้องต้นบรรทัด (FIRST_LINE_INDENT/NESTED_INDENT) และช่องว่างที่ผูกเลขข้อ (glueClauseNumber)
+// ใช้ non-breaking space (U+00A0) กัน react-pdf ยุบ/ตัดบรรทัดกลางช่องว่างนำ — split ด้วย
+// " +" เฉย ๆ จะไม่เห็นว่านี่คือ "ช่องว่าง" เลย ทำให้ก้อนเยื้อง (12/20 ตัว) ไปเชื่อมติดกับ
+// คำไทยที่ตามมาเป็นก้อนเดียวยาวเกิน MAX_UNBREAKABLE_RUN ทั้งที่ตัวคำเองสั้นกว่านั้นมาก
+// (ทำให้เกิดช่องว่างแทรกกลางคำผิดที่โดยไม่จำเป็น) ต้องนับ NBSP เป็นตัวคั่นด้วยเสมอ
+const WS_RUN = /([  ]+)/;
+const WS_ONLY = /^[  ]+$/;
+
 function computeBreathingOffsets(text: string): Set<number> {
   const offsets = new Set<number>();
   let pos = 0;
-  for (const word of text.split(/( +)/)) {
-    if (!/^ +$/.test(word) && word.length > MAX_UNBREAKABLE_RUN) {
+  for (const word of text.split(WS_RUN)) {
+    if (!WS_ONLY.test(word) && word.length > MAX_UNBREAKABLE_RUN) {
       const clusters = thaiClusters(word);
       let acc = 0;
       let cur = "";

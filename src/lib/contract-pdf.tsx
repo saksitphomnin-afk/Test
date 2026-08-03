@@ -491,31 +491,51 @@ function combinedTitle(b: Block): string {
   return `${b.titleEn} / ${b.titleTh.replace(/^\d+\.\s*/, "")}`;
 }
 
+// ตัดเลขข้อย่อยนำหน้า (เช่น "2.1 ") ออกจาก segment แรก คืนค่าพร้อมบอกว่าตัดจริงหรือไม่
+// (ใช้แยกจาก glueClauseNumber ซึ่งแค่รวมเลขให้ติดคำแรก ไม่ได้ตัดทิ้ง)
+function stripClauseNumber(segs: RichSegment[]): { segs: RichSegment[]; stripped: boolean } {
+  const [first, ...rest] = segs;
+  if (!first || first.bold) return { segs, stripped: false };
+  const text = first.text.replace(/^\d+(?:\.\d+)?\s+/, "");
+  if (text === first.text) return { segs, stripped: false };
+  return { segs: [{ ...first, text }, ...rest], stripped: true };
+}
+
+// เยื้องชดเชยความกว้างของเลขข้อที่ตัดออก (ฝั่งไทยในโหมดไทย+อังกฤษ) ให้ข้อความเริ่มตรงกับ
+// ตำแหน่งที่ข้อความอังกฤษเริ่มหลังเลขข้อพอดี แทนที่จะชิดซ้ายกว่าเพราะไม่มีเลขคั่นแล้ว
+const NUMBER_COMPENSATE_INDENT = " ".repeat(8);
+
 // เนื้อหาข้อสัญญา 1 ข้อ ของภาษาเดียว (ใช้ทั้งโหมดเดี่ยวและแต่ละหมวดของโหมดไทย+อังกฤษ)
 // title: กำหนดหัวข้อเองได้ (โหมดไทย+อังกฤษใช้หัวข้อรวม "1. Parties / คู่สัญญา" ครั้งเดียว
 // นำหน้าฝั่งอังกฤษ ส่วนฝั่งไทยไม่แสดงหัวข้อซ้ำ — ส่ง title={null} เพื่อซ่อน)
+// stripNumbers: โหมดไทย+อังกฤษฝั่งไทยเท่านั้น — ตัดเลขข้อย่อยซ้ำออก (ขึ้นที่ฝั่งอังกฤษแล้ว)
+// แล้วเยื้องเพิ่มชดเชยให้ตรงกับฝั่งอังกฤษ
 function ClauseBlockSection({
   block,
   isEnglish,
   title,
+  stripNumbers = false,
 }: {
   block: Block;
   isEnglish: boolean;
   title?: string | null;
+  stripNumbers?: boolean;
 }) {
   const heading = title === undefined ? (isEnglish ? block.titleEn : block.titleTh) : title;
   return (
     <View style={styles.clauseBlock} wrap={false}>
       {heading && <BiText style={styles.clauseTitle}>{heading}</BiText>}
       {block.items.map((it, i) => {
-        const prefix =
+        const raw = isEnglish ? it.en : it.th;
+        const { segs, stripped } = stripNumbers
+          ? stripClauseNumber(raw)
+          : { segs: raw, stripped: false };
+        const basePrefix =
           it.mode === "flush" ? "" : it.mode === "nested" ? NESTED_INDENT : FIRST_LINE_INDENT;
+        const prefix = stripped ? basePrefix + NUMBER_COMPENSATE_INDENT : basePrefix;
         return (
           <View key={i} wrap={false}>
-            <RichText
-              style={styles.para}
-              segments={withPrefix(prefix, glueClauseNumber(isEnglish ? it.en : it.th))}
-            />
+            <RichText style={styles.para} segments={withPrefix(prefix, glueClauseNumber(segs))} />
           </View>
         );
       })}
@@ -572,7 +592,12 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
                 />
               )}
               {showTh && (
-                <ClauseBlockSection block={b} isEnglish={false} title={isBoth ? null : undefined} />
+                <ClauseBlockSection
+                  block={b}
+                  isEnglish={false}
+                  title={isBoth ? null : undefined}
+                  stripNumbers={isBoth}
+                />
               )}
             </View>
           );
