@@ -136,7 +136,16 @@ function withPrefix(prefix: string, segs: RichSegment[]): RichSegment[] {
 // ==================== สัญญาเช่า (ตามเทมเพลตผู้ใช้ 14 ข้อ — ไทย/อังกฤษ) ====================
 
 type ParaMode = "indent" | "flush" | "nested";
-type Item = { th: RichSegment[]; en: RichSegment[]; mode: ParaMode };
+type Item = {
+  th: RichSegment[];
+  en: RichSegment[];
+  mode: ParaMode;
+  // ซ่อนบรรทัดนี้เมื่อโหมด "ไทย+อังกฤษ" (ใช้กับข้อ 1 ที่ต้นฉบับไทยแยกบรรทัด แต่เวอร์ชัน
+  // 2 ภาษาต้องการให้จบเป็นประโยคเดียวก่อน แล้วค่อยตามด้วยประโยคไทย — ดู bothOnly คู่กัน)
+  hideInBoth?: boolean;
+  // โชว์บรรทัดนี้เฉพาะโหมด "ไทย+อังกฤษ" เท่านั้น (ประโยครวมที่ใช้แทนบรรทัดที่ hideInBoth)
+  bothOnly?: boolean;
+};
 type Block = { titleTh: string; titleEn: string; items: Item[] };
 
 function leaseBlocks(d: ContractData): Block[] {
@@ -148,29 +157,49 @@ function leaseBlocks(d: ContractData): Block[] {
   const item = (
     th: string | RichSegment[],
     en: string | RichSegment[],
-    mode: ParaMode = "indent",
-  ): Item => ({ th: seg(th), en: seg(en), mode });
+    opts: { mode?: ParaMode; hideInBoth?: boolean; bothOnly?: boolean } = {},
+  ): Item => ({
+    th: seg(th),
+    en: seg(en),
+    mode: opts.mode ?? "indent",
+    hideInBoth: opts.hideInBoth,
+    bothOnly: opts.bothOnly,
+  });
   // ข้อ 1 และ 3 ไม่มีเลขข้อย่อย (x.y) ในเทมเพลตต้นฉบับ — บรรทัดต่อเนื่องจึงชิดขอบ
   // (บรรทัดที่ขึ้นข้อความ/ตัวละครใหม่ เช่น "ผู้ให้เช่า.../และผู้เช่า..." ยังเยื้องเหมือนข้ออื่น)
-  const flush = (th: string | RichSegment[], en: string | RichSegment[]) =>
-    item(th, en, "flush");
+  const flush = (
+    th: string | RichSegment[],
+    en: string | RichSegment[],
+    opts: { hideInBoth?: boolean; bothOnly?: boolean } = {},
+  ) => item(th, en, { ...opts, mode: "flush" });
 
   return [
     {
       titleTh: "1. คู่สัญญา",
       titleEn: "1. Parties",
       items: [
+        // โหมดไทยเดี่ยว/อังกฤษเดี่ยว — แยกทีละบรรทัดตามต้นฉบับ (ไม่แตะ ตามที่ยืนยันแล้ว)
         item(
           T`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`,
           T`Lessor, name-surname ${or(d.lessorName)}, national ID / passport No. ${or(d.lessorIdOrPassport)}`,
+          { hideInBoth: true },
         ),
         flush(
           T`ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)}`,
           T`address ${or(d.lessorAddress)}, telephone ${or(d.lessorPhone)}`,
+          { hideInBoth: true },
         ),
         flush(
           'ต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า"',
           'hereinafter referred to as the "Lessor"',
+          { hideInBoth: true },
+        ),
+        // โหมดไทย+อังกฤษ — รวมเป็นประโยคเดียวจบต่อภาษา (อังกฤษก่อน แล้วตามด้วยไทย)
+        // เหมือนรูปแบบของฝั่งผู้เช่าด้านล่าง
+        item(
+          T`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)} ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า"`,
+          T`Lessor, name-surname ${or(d.lessorName)}, national ID / passport No. ${or(d.lessorIdOrPassport)}, address ${or(d.lessorAddress)}, telephone ${or(d.lessorPhone)}, hereinafter referred to as the "Lessor"`,
+          { bothOnly: true },
         ),
         item(
           T`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`,
@@ -230,16 +259,16 @@ function leaseBlocks(d: ContractData): Block[] {
           T`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`,
           T`to be paid by the ${or(d.paymentDueDay)} of each month via bank transfer to the following account:`,
         ),
-        item(T`ธนาคาร ${or(d.bankName)}`, T`Bank: ${or(d.bankName)}`, "nested"),
+        item(T`ธนาคาร ${or(d.bankName)}`, T`Bank: ${or(d.bankName)}`, { mode: "nested" }),
         item(
           T`ชื่อบัญชี ${or(d.bankAccountName)}`,
           T`Account Name: ${or(d.bankAccountName)}`,
-          "nested",
+          { mode: "nested" },
         ),
         item(
           T`เลขที่บัญชี ${or(d.bankAccountNumber)}`,
           T`Account Number: ${or(d.bankAccountNumber)}`,
-          "nested",
+          { mode: "nested" },
         ),
         flush(
           'การชำระถือว่าสมบูรณ์เมื่อเงินเข้าบัญชีของ "ผู้ให้เช่า" เรียบร้อยแล้ว',
@@ -496,7 +525,11 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
             <BiText style={styles.clauseTitle}>
               {showEn && showTh ? `${b.titleEn} / ${b.titleTh}` : showEn ? b.titleEn : b.titleTh}
             </BiText>
-            {b.items.map((it, i) => {
+            {b.items
+              .filter((it) =>
+                showEn && showTh ? !it.hideInBoth : !it.bothOnly,
+              )
+              .map((it, i) => {
               const prefix =
                 it.mode === "flush"
                   ? ""
