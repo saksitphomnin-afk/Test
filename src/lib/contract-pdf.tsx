@@ -549,19 +549,23 @@ function ClauseBlockSection({
 // อังกฤษ-ไทยของข้อย่อยเดียวกันอยู่ติดกันแทน (แต่ละคู่ wrap={false} กันบรรทัดอังกฤษกับคำแปล
 // ไทยของมันถูกตัดคนละหน้า ส่วนตัวหมวดเองปล่อยให้ขึ้นหน้าใหม่ได้ระหว่างคู่ เพราะข้อยาวเกินไป
 // สำหรับหน้าเดียวเมื่อมีทั้งสองภาษา)
+// หมายเหตุ: เคยลองครอบหัวข้อรวมไว้ใน wrap={false} เดียวกับคู่ข้อย่อยแรก (กันหัวข้อค้างโดดเดี่ยว
+// ท้ายหน้า) แต่ทำให้บล็อกอะตอมมิกตัวแรกสูงเกินพื้นที่เหลือของหน้าในบางกรณี react-pdf คำนวณ
+// การตัดหน้าผิดจนข้อความซ้อนทับกัน (อ่านไม่ออก) — bug ร้ายแรงกว่าหัวข้อโดดเดี่ยวมาก จึงแยก
+// หัวข้อออกมาเป็นก้อนของตัวเอง ไม่ผูกกับคู่ข้อย่อยแรกอีก
 function ClauseBlockInterleaved({ block }: { block: Block }) {
   return (
     <View style={styles.clauseBlock}>
+      <BiText style={[styles.clauseTitle]} minPresenceAhead={40}>
+        {combinedTitle(block)}
+      </BiText>
       {block.items.map((it, i) => {
         const basePrefix =
           it.mode === "flush" ? "" : it.mode === "nested" ? NESTED_INDENT : FIRST_LINE_INDENT;
         const { segs: thSegs, stripped } = stripClauseNumber(it.th);
         const thPrefix = stripped ? basePrefix + NUMBER_COMPENSATE_INDENT : basePrefix;
         return (
-          // wrap={false} ครอบหัวข้อรวมไว้กับคู่ข้อย่อยแรกด้วย (เฉพาะ i===0) กันหัวข้อค้าง
-          // โดดเดี่ยวท้ายหน้าแล้วเนื้อหาทั้งหมดไปขึ้นหน้าใหม่
           <View key={i} wrap={false}>
-            {i === 0 && <BiText style={styles.clauseTitle}>{combinedTitle(block)}</BiText>}
             <RichText
               style={styles.para}
               segments={withPrefix(basePrefix, glueClauseNumber(it.en))}
