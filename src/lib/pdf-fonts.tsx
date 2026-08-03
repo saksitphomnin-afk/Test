@@ -41,11 +41,18 @@ const isLeadingVowel = (c: string) => c >= "เ" && c <= "ไ";
 // แตกคำไทยเป็น "พยางค์" โดยยอมให้ตัดบรรทัดได้เฉพาะ "หน้าสระนำ" เท่านั้น
 // → คำทั่วไปจะไม่ถูกตัดกลางคำ (เช่น "ทั้งหมด" อยู่เป็นก้อนเดียว ไม่เหลือ "มด" โดด ๆ)
 // แต่ประโยคยาว ๆ ยังตัดบรรทัดได้ที่ขึ้นพยางค์ใหม่ (กันตัวอักษรท้ายบรรทัดหาย)
-function thaiClusters(word: string): string[] {
+// คำนำหน้าสั้น ๆ ที่ไม่ยืนคำเดี่ยวตามธรรมชาติ (มักนำหน้าคำอื่นเสมอ เช่น "ผู้เช่า",
+// "ผู้ให้เช่า") — ห้ามตัดบรรทัดทันทีหลังคำเหล่านี้ แม้จะเจอสระนำของคำถัดไปก็ตาม
+// กันไม่ให้คำสำคัญของสัญญาแหว่งออกจากกัน (เช่น "ผู้" ค้างอยู่บรรทัดหนึ่ง แล้ว "เช่า"
+// ไปอีกบรรทัดหนึ่ง)
+const NO_BREAK_AFTER = ["ผู้", "ให้"];
+
+export function thaiClusters(word: string): string[] {
   const clusters: string[] = [];
   let cur = "";
   for (const ch of word) {
-    if (cur !== "" && isLeadingVowel(ch)) {
+    const mustGlue = NO_BREAK_AFTER.some((p) => cur.endsWith(p));
+    if (cur !== "" && isLeadingVowel(ch) && !mustGlue) {
       clusters.push(cur);
       cur = ch;
     } else {
@@ -97,11 +104,67 @@ function scriptRuns(text: string): { latin: boolean; text: string }[] {
 // เมื่อเจอ "คำ" ที่ไม่มีจุดตัดเลย) ทำให้เลขดูเหมือนขาด/ผิด แก้โดยแตกเป็น nested <Text> กลุ่มละ
 // ~4 ตัวอักษร เพราะขอบเขตของ nested Text ถือเป็นจุดตัดบรรทัดที่ปลอดภัยอยู่แล้ว (ไม่มียัติภังค์)
 const NUMERIC_TOKEN = /^[\d/().-]{7,}$/;
-function chunkForBreaks(text: string): string[] {
-  if (!NUMERIC_TOKEN.test(text)) return [text];
-  const chunks: string[] = [];
-  for (let i = 0; i < text.length; i += 4) chunks.push(text.slice(i, i + 4));
-  return chunks;
+function chunkForBreaks(text: string, latin: boolean): string[] {
+  if (latin) return [text];
+  if (NUMERIC_TOKEN.test(text)) {
+    const chunks: string[] = [];
+    let i = 0;
+    while (i < text.length) {
+      let end = Math.min(i + 4, text.length);
+      // ถ้ายัติภังค์ "-" เดิม (เช่นในเลขบัญชี/เบอร์โทร) ตกท้ายกลุ่มพอดี จะไปชนกับ
+      // ยัติภังค์ที่ textkit เติมเองตอนตัดบรรทัด กลายเป็น "--" ซ้อนกัน — ตัดกลุ่มให้สั้นลง
+      // 1 ตัว ให้ "-" ไปขึ้นต้นกลุ่มถัดไปแทน (ขึ้นต้นด้วย "-" ไม่มีปัญหาอะไร)
+      if (end < text.length && text[end - 1] === "-") end--;
+      if (end === i) end = i + 1;
+      chunks.push(text.slice(i, end));
+      i = end;
+    }
+    return chunks;
+  }
+  return [insertBreathingSpaces(text)];
+}
+
+// react-pdf/textkit ("wrapWords") ตัดคำเป็น "ช่วง" ด้วยการ split ที่ช่องว่างจริง (" ")
+// เท่านั้น — ช่วงที่เกิดจาก hyphenation callback (เช่น thaiClusters) ยังถูกนับเป็นจุดตัด
+// "penalty" เสมอ ซึ่งจะขึ้นยัติภังค์ (-) ทุกครั้งที่ถูกเลือกใช้ ไม่ว่า hyphenationPenalty
+// จะตั้งสูงแค่ไหนก็ตาม (แค่ลดโอกาสถูกเลือก ไม่ได้ป้องกันยัติภังค์เมื่อเลี่ยงไม่ได้จริง ๆ)
+// ประโยคไทยยาว ๆ ที่ไม่มีช่องว่างธรรมชาติเลยในช่วงยาวเกิน 1 บรรทัด (เช่น อนุประโยคยาว)
+// จึงหลีกเลี่ยงยัติภังค์ไม่ได้ด้วยกลไกนี้ — ทางเดียวที่ตัดบรรทัดได้โดยไม่มียัติภังค์คือ
+// ช่องว่างจริง จึงต้องแทรกช่องว่างจริง (ไม่ใช่แค่แตก nested <Text>) ที่จุดปลอดภัย (หน้าสระนำ)
+// เฉพาะ "คำ" ที่ยาวเกินกว่าจะพอดี 1 บรรทัดได้แน่ ๆ เพื่อไม่ให้กระทบระยะห่างของคำสั้น ๆ ทั่วไป
+const MAX_UNBREAKABLE_RUN = 22;
+function insertBreathingSpaces(text: string): string {
+  return text
+    .split(/( +)/)
+    .map((word) => {
+      // ระวัง: ใช้ /^ +$/ (ทั้งคำต้องเป็นช่องว่างล้วน) ไม่ใช่ /\s/.test() เฉย ๆ — เพราะ
+      // glueClauseNumber แทรก NBSP (U+00A0) ไว้ในเนื้อคำ (เช่น "9.1 ความ...") และ \s
+      // ใน JS regex แมตช์ NBSP ด้วย ถ้าใช้ .test() เดิม คำที่ "มี" NBSP อยู่ที่ไหนสักแห่ง
+      // (ไม่ใช่ทั้งคำเป็นช่องว่าง) จะถูกเข้าใจผิดว่าเป็นช่องว่างล้วน แล้วข้ามการตัดคำไปทั้งคำ
+      if (/^ +$/.test(word) || word.length <= MAX_UNBREAKABLE_RUN) return word;
+      // ยาวเกินจะพอดี 1 บรรทัดแน่ ๆ — เว้นวรรคจริงคั่นทุกจุด (ไม่ใช่แค่รวมเป็นกลุ่มละ ~40
+      // ตัวอักษร) เพราะจุดตัดบรรทัดจริงอาจตกกลางกลุ่มที่รวมไว้ได้ ถ้ายังยาวเกินพื้นที่
+      // เหลือของบรรทัดนั้น ๆ ก็จะกลับไปเจอยัติภังค์อีกเหมือนเดิม
+      // บางพยางค์ (ตาม thaiClusters) เองก็ยาวเกิน MAX_UNBREAKABLE_RUN ได้ (ช่วงยาวที่ไม่มี
+      // สระนำเลย) — ไม่มีจุดตัดตามหลักภาษาให้ใช้อีกแล้ว จึงตัดตรง ๆ ทุก ๆ MAX_UNBREAKABLE_RUN
+      // ตัวอักษร (ดีกว่ายัติภังค์ผิด ๆ เพราะภาษาไทยไม่มีธรรมเนียมการใส่ยัติภังค์อยู่แล้ว)
+      // แต่ต้องเลื่อนจุดตัดให้พ้นสระ/วรรณยุกต์ที่ลอยอยู่ (combining mark) ก่อนเสมอ ไม่งั้น
+      // จะตัดแยกพยัญชนะออกจากสระ/วรรณยุกต์ที่เกาะอยู่ ทำให้เห็นเครื่องหมายลอยผิดที่
+      const pieces = thaiClusters(word).flatMap((c) => {
+        if (c.length <= MAX_UNBREAKABLE_RUN) return [c];
+        const sub: string[] = [];
+        let i = 0;
+        while (i < c.length) {
+          let end = i + MAX_UNBREAKABLE_RUN;
+          while (end < c.length && /\p{Mn}/u.test(c[end])) end++;
+          sub.push(c.slice(i, end));
+          i = end;
+        }
+        return sub;
+      });
+      return pieces.join(" ");
+    })
+    .join("");
 }
 
 // react-pdf/textkit treats EVERY boundary between two adjacent style runs that
@@ -129,16 +192,18 @@ function nodeToText(node: ReactNode): string {
 export function BiText({
   children,
   style,
+  minPresenceAhead,
 }: {
   children: ReactNode;
   style?: Style | Style[];
+  minPresenceAhead?: number;
 }) {
   const text = nodeToText(children);
   const runs = scriptRuns(text);
   return (
-    <Text style={style} {...NO_HYPHEN_PROP}>
+    <Text style={style} minPresenceAhead={minPresenceAhead} {...NO_HYPHEN_PROP}>
       {runs.map((r, i) =>
-        chunkForBreaks(r.text).map((c, ci) => (
+        chunkForBreaks(r.text, r.latin).map((c, ci) => (
           <Text
             key={`${i}-${ci}`}
             style={{ fontFamily: r.latin ? "AngsanaNew" : "THSarabun" }}
@@ -169,7 +234,7 @@ export function RichText({
     <Text style={style} {...NO_HYPHEN_PROP}>
       {segments.map((seg, si) =>
         scriptRuns(seg.text).map((r, ri) =>
-          chunkForBreaks(r.text).map((c, ci) => (
+          chunkForBreaks(r.text, r.latin).map((c, ci) => (
             <Text
               key={`${si}-${ri}-${ci}`}
               style={{

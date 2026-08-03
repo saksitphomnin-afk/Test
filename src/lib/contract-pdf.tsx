@@ -45,6 +45,9 @@ const styles = StyleSheet.create({
   // ไม่ใช้ justify — ภาษาไทยไม่มีช่องว่างระหว่างคำตามธรรมชาติ ทำให้ react-pdf
   // ยืดช่องว่างที่มีอยู่ไม่กี่จุดจนห่างผิดปกติในบรรทัดที่มีคำน้อย
   para: { marginBottom: 4, textAlign: "left" },
+  // เวอร์ชันไทย+อังกฤษ: TH Sarabun ที่ 16pt ดูใหญ่กว่า Angsana New ที่ 16pt มาก
+  // ลดขนาดฟอนต์ไทยลงเล็กน้อยเฉพาะโหมดนี้ ให้มองเห็นเท่ากันกับบรรทัดอังกฤษคู่กัน
+  paraThBoth: { marginBottom: 4, textAlign: "left", fontSize: 14.5 },
   // signatures
   signWrap: { marginTop: 28 },
   signRow: {
@@ -116,6 +119,22 @@ function glueClauseNumber(segs: RichSegment[]): RichSegment[] {
   if (!first || first.bold) return segs;
   const text = first.text.replace(/^(\d+(?:\.\d+)?)\s+/, "$1 ");
   return text === first.text ? segs : [{ ...first, text }, ...rest];
+}
+
+// เวอร์ชันไทย+อังกฤษ: ตัวเลขข้อ (เช่น "5.2", "2.1") ขึ้นนำหน้าฝั่งอังกฤษไปแล้ว
+// ฝั่งไทยจึงไม่ต้องมีเลขซ้ำอีก — ตัดเลขนำหน้าออกจาก segment แรกของบรรทัดไทยเท่านั้น
+// (โหมดไทยล้วน/อังกฤษล้วน ไม่แตะ ยังคงมีเลขกำกับตามต้นฉบับเดิม)
+function stripClauseNumber(segs: RichSegment[]): RichSegment[] {
+  const [first, ...rest] = segs;
+  if (!first || first.bold) return segs;
+  const text = first.text.replace(/^\d+(?:\.\d+)?\s+/, "");
+  return text === first.text ? segs : [{ ...first, text }, ...rest];
+}
+
+// ตัดเลขนำหน้าหัวข้อใหญ่ฝั่งไทยออกในเวอร์ชันไทย+อังกฤษ (เลขขึ้นที่ฝั่งอังกฤษครั้งเดียวพอ)
+// เช่น "2. ทรัพย์สินที่ให้เช่า" -> "ทรัพย์สินที่ให้เช่า"
+function stripHeadingNumber(title: string): string {
+  return title.replace(/^\d+\.\s*/, "");
 }
 
 // Tagged template สร้าง segment: ข้อความมาตรฐานในเทมเพลต = ปกติ,
@@ -520,41 +539,52 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
         {/* wrap={false} เก็บทั้งข้อไว้หน้าเดียวกัน แต่โหมด BOTH เนื้อหายาวเป็น 2 เท่า (ไทย+อังกฤษ)
             บางข้อ (เช่น 5, 6) อาจสูงเกิน 1 หน้า — บังคับไม่ให้ตัดหน้าจะทำให้ข้อความทับกันแทน
             จึงอนุญาตให้ตัดหน้าได้เฉพาะโหมด BOTH */}
-        {blocks.map((b) => (
-          <View key={b.titleTh} style={styles.clauseBlock} wrap={showEn && showTh}>
-            <BiText style={styles.clauseTitle}>
-              {showEn && showTh ? `${b.titleEn} / ${b.titleTh}` : showEn ? b.titleEn : b.titleTh}
-            </BiText>
-            {b.items
-              .filter((it) =>
-                showEn && showTh ? !it.hideInBoth : !it.bothOnly,
-              )
-              .map((it, i) => {
-              const prefix =
-                it.mode === "flush"
-                  ? ""
-                  : it.mode === "nested"
-                    ? NESTED_INDENT
-                    : FIRST_LINE_INDENT;
-              return (
-                <View key={i}>
-                  {showEn && (
-                    <RichText
-                      style={styles.para}
-                      segments={withPrefix(prefix, glueClauseNumber(it.en))}
-                    />
-                  )}
-                  {showTh && (
-                    <RichText
-                      style={styles.para}
-                      segments={withPrefix(prefix, glueClauseNumber(it.th))}
-                    />
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        ))}
+        {(() => {
+          const isBoth = showEn && showTh;
+          return blocks.map((b) => (
+            <View key={b.titleTh} style={styles.clauseBlock} wrap={isBoth}>
+              <BiText
+                style={styles.clauseTitle}
+                minPresenceAhead={isBoth ? 40 : undefined}
+              >
+                {isBoth
+                  ? `${b.titleEn} / ${stripHeadingNumber(b.titleTh)}`
+                  : showEn
+                    ? b.titleEn
+                    : b.titleTh}
+              </BiText>
+              {b.items
+                .filter((it) => (isBoth ? !it.hideInBoth : !it.bothOnly))
+                .map((it, i) => {
+                  const prefix =
+                    it.mode === "flush"
+                      ? ""
+                      : it.mode === "nested"
+                        ? NESTED_INDENT
+                        : FIRST_LINE_INDENT;
+                  return (
+                    <View key={i}>
+                      {showEn && (
+                        <RichText
+                          style={styles.para}
+                          segments={withPrefix(prefix, glueClauseNumber(it.en))}
+                        />
+                      )}
+                      {showTh && (
+                        <RichText
+                          style={isBoth ? [styles.para, styles.paraThBoth] : styles.para}
+                          segments={withPrefix(
+                            prefix,
+                            isBoth ? stripClauseNumber(it.th) : glueClauseNumber(it.th),
+                          )}
+                        />
+                      )}
+                    </View>
+                  );
+                })}
+            </View>
+          ));
+        })()}
 
         {/* ลายเซ็น — เว้นบรรทัดไว้เซ็นมือ */}
         <View style={styles.signWrap} wrap={false}>
