@@ -543,6 +543,37 @@ function ClauseBlockSection({
   );
 }
 
+// เนื้อหาข้อสัญญา 1 ข้อ แบบสลับทีละข้อย่อย (อังกฤษแล้วตามด้วยไทยทันทีทีละคู่) — ใช้กับข้อ 5
+// เป็นต้นไปในโหมดไทย+อังกฤษ เพราะมีข้อย่อยจำนวนมากและสั้น การแยกเป็นหมวดเต็ม (ClauseBlockSection
+// ที่โชว์อังกฤษทั้งข้อก่อนแล้วค่อยไทยทั้งข้อ) ทำให้ไล่จับคู่ประโยคที่ตรงกันข้ามภาษายาก จึงให้
+// อังกฤษ-ไทยของข้อย่อยเดียวกันอยู่ติดกันแทน (แต่ละคู่ wrap={false} กันบรรทัดอังกฤษกับคำแปล
+// ไทยของมันถูกตัดคนละหน้า ส่วนตัวหมวดเองปล่อยให้ขึ้นหน้าใหม่ได้ระหว่างคู่ เพราะข้อยาวเกินไป
+// สำหรับหน้าเดียวเมื่อมีทั้งสองภาษา)
+function ClauseBlockInterleaved({ block }: { block: Block }) {
+  return (
+    <View style={styles.clauseBlock}>
+      {block.items.map((it, i) => {
+        const basePrefix =
+          it.mode === "flush" ? "" : it.mode === "nested" ? NESTED_INDENT : FIRST_LINE_INDENT;
+        const { segs: thSegs, stripped } = stripClauseNumber(it.th);
+        const thPrefix = stripped ? basePrefix + NUMBER_COMPENSATE_INDENT : basePrefix;
+        return (
+          // wrap={false} ครอบหัวข้อรวมไว้กับคู่ข้อย่อยแรกด้วย (เฉพาะ i===0) กันหัวข้อค้าง
+          // โดดเดี่ยวท้ายหน้าแล้วเนื้อหาทั้งหมดไปขึ้นหน้าใหม่
+          <View key={i} wrap={false}>
+            {i === 0 && <BiText style={styles.clauseTitle}>{combinedTitle(block)}</BiText>}
+            <RichText
+              style={styles.para}
+              segments={withPrefix(basePrefix, glueClauseNumber(it.en))}
+            />
+            <RichText style={styles.para} segments={withPrefix(thPrefix, glueClauseNumber(thSegs))} />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang }) {
   const showTh = lang === "TH" || lang === "BOTH";
   const showEn = lang === "EN" || lang === "BOTH";
@@ -576,12 +607,18 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
           />
         )}
 
-        {/* โหมดไทย+อังกฤษ: แยกเป็นหมวดต่อข้อ — อังกฤษทั้งข้อก่อน (เหมือนสัญญาอังกฤษล้วนทุก
-            ประการ) แล้วตามด้วยไทยทั้งข้อ (เหมือนสัญญาไทยล้วน) แทนการสลับบรรทัดทีละย่อหน้า
-            ทั้งสองภาษาจึงเป็นก้อนเดียวกันขนาดเท่าโหมดเดี่ยว — wrap={false} เก็บทั้งข้อ
-            (หัวข้อ+ย่อหน้าทั้งหมดของภาษานั้น) ไว้หน้าเดียวกันได้แบบเดียวกับโหมดเดี่ยว */}
-        {blocks.map((b) => {
+        {/* โหมดไทย+อังกฤษ ข้อ 1-4: แยกเป็นหมวดต่อข้อ — อังกฤษทั้งข้อก่อน (เหมือนสัญญาอังกฤษ
+            ล้วนทุกประการ) แล้วตามด้วยไทยทั้งข้อ (เหมือนสัญญาไทยล้วน) ข้อ 5 เป็นต้นไปมีข้อย่อย
+            จำนวนมากและสั้น จึงสลับทีละคู่แทน (ClauseBlockInterleaved) กันไล่จับคู่ประโยคยาก */}
+        {blocks.map((b, idx) => {
           const isBoth = showEn && showTh;
+          if (isBoth && idx >= 4) {
+            return (
+              <View key={b.titleTh}>
+                <ClauseBlockInterleaved block={b} />
+              </View>
+            );
+          }
           return (
             <View key={b.titleTh}>
               {showEn && (
