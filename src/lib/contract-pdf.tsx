@@ -485,11 +485,28 @@ function SignBox({
   );
 }
 
+// โหมดไทย+อังกฤษ: รวมหัวข้อทั้งสองภาษาเป็นบรรทัดเดียว เช่น "1. Parties / คู่สัญญา"
+// (ตัดเลขข้อฝั่งไทยออกเพราะขึ้นที่ฝั่งอังกฤษไปแล้ว)
+function combinedTitle(b: Block): string {
+  return `${b.titleEn} / ${b.titleTh.replace(/^\d+\.\s*/, "")}`;
+}
+
 // เนื้อหาข้อสัญญา 1 ข้อ ของภาษาเดียว (ใช้ทั้งโหมดเดี่ยวและแต่ละหมวดของโหมดไทย+อังกฤษ)
-function ClauseBlockSection({ block, isEnglish }: { block: Block; isEnglish: boolean }) {
+// title: กำหนดหัวข้อเองได้ (โหมดไทย+อังกฤษใช้หัวข้อรวม "1. Parties / คู่สัญญา" ครั้งเดียว
+// นำหน้าฝั่งอังกฤษ ส่วนฝั่งไทยไม่แสดงหัวข้อซ้ำ — ส่ง title={null} เพื่อซ่อน)
+function ClauseBlockSection({
+  block,
+  isEnglish,
+  title,
+}: {
+  block: Block;
+  isEnglish: boolean;
+  title?: string | null;
+}) {
+  const heading = title === undefined ? (isEnglish ? block.titleEn : block.titleTh) : title;
   return (
     <View style={styles.clauseBlock} wrap={false}>
-      <BiText style={styles.clauseTitle}>{isEnglish ? block.titleEn : block.titleTh}</BiText>
+      {heading && <BiText style={styles.clauseTitle}>{heading}</BiText>}
       {block.items.map((it, i) => {
         const prefix =
           it.mode === "flush" ? "" : it.mode === "nested" ? NESTED_INDENT : FIRST_LINE_INDENT;
@@ -543,12 +560,23 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
             ประการ) แล้วตามด้วยไทยทั้งข้อ (เหมือนสัญญาไทยล้วน) แทนการสลับบรรทัดทีละย่อหน้า
             ทั้งสองภาษาจึงเป็นก้อนเดียวกันขนาดเท่าโหมดเดี่ยว — wrap={false} เก็บทั้งข้อ
             (หัวข้อ+ย่อหน้าทั้งหมดของภาษานั้น) ไว้หน้าเดียวกันได้แบบเดียวกับโหมดเดี่ยว */}
-        {blocks.map((b) => (
-          <View key={b.titleTh}>
-            {showEn && <ClauseBlockSection block={b} isEnglish />}
-            {showTh && <ClauseBlockSection block={b} isEnglish={false} />}
-          </View>
-        ))}
+        {blocks.map((b) => {
+          const isBoth = showEn && showTh;
+          return (
+            <View key={b.titleTh}>
+              {showEn && (
+                <ClauseBlockSection
+                  block={b}
+                  isEnglish
+                  title={isBoth ? combinedTitle(b) : undefined}
+                />
+              )}
+              {showTh && (
+                <ClauseBlockSection block={b} isEnglish={false} title={isBoth ? null : undefined} />
+              )}
+            </View>
+          );
+        })}
 
         {/* ลายเซ็น — เว้นบรรทัดไว้เซ็นมือ */}
         <View style={styles.signWrap} wrap={false}>
