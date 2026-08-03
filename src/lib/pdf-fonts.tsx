@@ -46,13 +46,21 @@ const isLeadingVowel = (c: string) => c >= "เ" && c <= "ไ";
 // กันไม่ให้คำสำคัญของสัญญาแหว่งออกจากกัน (เช่น "ผู้" ค้างอยู่บรรทัดหนึ่ง แล้ว "เช่า"
 // ไปอีกบรรทัดหนึ่ง)
 const NO_BREAK_AFTER = ["ผู้", "ให้"];
+// คำเสริมท้ายกริยาที่เกาะติดคำหน้าเสมอ (เช่น "จัดไว้", "เก็บไว้") แม้จะขึ้นต้นด้วยสระนำ
+// ก็ห้ามตัดบรรทัดก่อนคำเหล่านี้ กันไม่ให้แหว่งออกจากกริยาข้างหน้า
+const NO_BREAK_BEFORE = ["ไว้"];
 
 export function thaiClusters(word: string): string[] {
   const clusters: string[] = [];
   let cur = "";
-  for (const ch of word) {
-    const mustGlue = NO_BREAK_AFTER.some((p) => cur.endsWith(p));
-    if (cur !== "" && isLeadingVowel(ch) && !mustGlue) {
+  const chars = Array.from(word);
+  for (let idx = 0; idx < chars.length; idx++) {
+    const ch = chars[idx];
+    const mustGlueAfter = NO_BREAK_AFTER.some((p) => cur.endsWith(p));
+    const mustGlueBefore =
+      cur !== "" &&
+      NO_BREAK_BEFORE.some((w) => chars.slice(idx, idx + w.length).join("") === w);
+    if (cur !== "" && isLeadingVowel(ch) && !mustGlueAfter && !mustGlueBefore) {
       clusters.push(cur);
       cur = ch;
     } else {
@@ -132,36 +140,37 @@ function chunkForBreaks(text: string, latin: boolean): string[] {
 // จึงหลีกเลี่ยงยัติภังค์ไม่ได้ด้วยกลไกนี้ — ทางเดียวที่ตัดบรรทัดได้โดยไม่มียัติภังค์คือ
 // ช่องว่างจริง จึงต้องแทรกช่องว่างจริง (ไม่ใช่แค่แตก nested <Text>) ที่จุดปลอดภัย (หน้าสระนำ)
 // เฉพาะ "คำ" ที่ยาวเกินกว่าจะพอดี 1 บรรทัดได้แน่ ๆ เพื่อไม่ให้กระทบระยะห่างของคำสั้น ๆ ทั่วไป
-const MAX_UNBREAKABLE_RUN = 22;
+const MAX_UNBREAKABLE_RUN = 28;
+const CHUNK_TARGET = 16;
+const HARD_SLICE_LIMIT = 16;
 function insertBreathingSpaces(text: string): string {
   return text
     .split(/( +)/)
     .map((word) => {
-      // ระวัง: ใช้ /^ +$/ (ทั้งคำต้องเป็นช่องว่างล้วน) ไม่ใช่ /\s/.test() เฉย ๆ — เพราะ
-      // glueClauseNumber แทรก NBSP (U+00A0) ไว้ในเนื้อคำ (เช่น "9.1 ความ...") และ \s
-      // ใน JS regex แมตช์ NBSP ด้วย ถ้าใช้ .test() เดิม คำที่ "มี" NBSP อยู่ที่ไหนสักแห่ง
-      // (ไม่ใช่ทั้งคำเป็นช่องว่าง) จะถูกเข้าใจผิดว่าเป็นช่องว่างล้วน แล้วข้ามการตัดคำไปทั้งคำ
       if (/^ +$/.test(word) || word.length <= MAX_UNBREAKABLE_RUN) return word;
-      // ยาวเกินจะพอดี 1 บรรทัดแน่ ๆ — เว้นวรรคจริงคั่นทุกจุด (ไม่ใช่แค่รวมเป็นกลุ่มละ ~40
-      // ตัวอักษร) เพราะจุดตัดบรรทัดจริงอาจตกกลางกลุ่มที่รวมไว้ได้ ถ้ายังยาวเกินพื้นที่
-      // เหลือของบรรทัดนั้น ๆ ก็จะกลับไปเจอยัติภังค์อีกเหมือนเดิม
-      // บางพยางค์ (ตาม thaiClusters) เองก็ยาวเกิน MAX_UNBREAKABLE_RUN ได้ (ช่วงยาวที่ไม่มี
-      // สระนำเลย) — ไม่มีจุดตัดตามหลักภาษาให้ใช้อีกแล้ว จึงตัดตรง ๆ ทุก ๆ MAX_UNBREAKABLE_RUN
-      // ตัวอักษร (ดีกว่ายัติภังค์ผิด ๆ เพราะภาษาไทยไม่มีธรรมเนียมการใส่ยัติภังค์อยู่แล้ว)
-      // แต่ต้องเลื่อนจุดตัดให้พ้นสระ/วรรณยุกต์ที่ลอยอยู่ (combining mark) ก่อนเสมอ ไม่งั้น
-      // จะตัดแยกพยัญชนะออกจากสระ/วรรณยุกต์ที่เกาะอยู่ ทำให้เห็นเครื่องหมายลอยผิดที่
-      const pieces = thaiClusters(word).flatMap((c) => {
-        if (c.length <= MAX_UNBREAKABLE_RUN) return [c];
-        const sub: string[] = [];
-        let i = 0;
-        while (i < c.length) {
-          let end = i + MAX_UNBREAKABLE_RUN;
-          while (end < c.length && /\p{Mn}/u.test(c[end])) end++;
-          sub.push(c.slice(i, end));
-          i = end;
+      const clusters = thaiClusters(word);
+      const pieces: string[] = [];
+      let cur = "";
+      for (const c of clusters) {
+        if (c.length > HARD_SLICE_LIMIT) {
+          // พยางค์นี้ (ตาม thaiClusters) ยาวเกิน HARD_SLICE_LIMIT เอง (ช่วงยาวที่ไม่มี
+          // สระนำเลย) — ไม่ตัดมันต่อแบบสุ่มตำแหน่ง เพราะเสี่ยงตัดกลาง "คำ" จริง ๆ (เช่น
+          // "รายการ" กลายเป็น "รา|ยการ") ซึ่งดูแปลกกว่ายัติภังค์เสียอีก ปล่อยเป็นก้อนเดียว
+          // ไปทั้งดุ้น — ถ้าสุดท้ายยังไม่พอดีบรรทัดจริง ๆ ก็ยอมให้ fallback เดิมขึ้น
+          // ยัติภังค์เป็นกรณีหายากแทน ดีกว่าคำแหว่งผิดที่บ่อย ๆ
+          if (cur) {
+            pieces.push(cur);
+            cur = "";
+          }
+          pieces.push(c);
+        } else if (cur && cur.length + c.length > CHUNK_TARGET) {
+          pieces.push(cur);
+          cur = c;
+        } else {
+          cur += c;
         }
-        return sub;
-      });
+      }
+      if (cur) pieces.push(cur);
       return pieces.join(" ");
     })
     .join("");

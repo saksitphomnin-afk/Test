@@ -49,14 +49,14 @@ const styles = StyleSheet.create({
   // ลดขนาดฟอนต์ไทยลงเล็กน้อยเฉพาะโหมดนี้ ให้มองเห็นเท่ากันกับบรรทัดอังกฤษคู่กัน
   paraThBoth: { marginBottom: 4, textAlign: "left", fontSize: 14.5 },
   // signatures
-  signWrap: { marginTop: 28 },
+  signWrap: { marginTop: 4 },
   signRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 30,
+    marginTop: 10,
   },
   signBox: { width: "47%" },
-  signLine: { flexDirection: "row", alignItems: "flex-end", marginBottom: 12 },
+  signLine: { flexDirection: "row", alignItems: "flex-end", marginBottom: 6 },
   signDash: {
     flex: 1,
     borderBottomWidth: 1,
@@ -248,19 +248,19 @@ function leaseBlocks(d: ContractData): Block[] {
       titleTh: "3. ระยะเวลาการเช่า",
       titleEn: "3. Lease Term",
       items: [
-        flush(
+        item(
           T`สัญญาเช่ามีกำหนด ${or(d.durationMonths)} เดือน`,
           T`This agreement has a term of ${or(d.durationMonths)} months`,
         ),
-        flush(
+        item(
           T`เริ่มตั้งแต่วันที่ ${thaiDate(d.startDate)}`,
           T`commencing from ${engDate(d.startDate)}`,
         ),
-        flush(
+        item(
           T`สิ้นสุดวันที่ ${thaiDate(d.endDate)}`,
           T`and ending on ${engDate(d.endDate)}`,
         ),
-        flush(
+        item(
           "เมื่อครบกำหนด หากประสงค์จะต่อสัญญา ทั้งสองฝ่ายต้องตกลงกันเป็นลายลักษณ์อักษรก่อนสัญญาสิ้นสุด",
           "Upon expiration, if either party wishes to renew this agreement, both parties must agree in writing before the agreement expires.",
         ),
@@ -278,14 +278,14 @@ function leaseBlocks(d: ContractData): Block[] {
           T`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`,
           T`to be paid by the ${or(d.paymentDueDay)} of each month via bank transfer to the following account:`,
         ),
-        item(T`ธนาคาร ${or(d.bankName)}`, T`Bank: ${or(d.bankName)}`, { mode: "nested" }),
+        item(T`ธนาคาร: ${or(d.bankName)}`, T`Bank: ${or(d.bankName)}`, { mode: "nested" }),
         item(
-          T`ชื่อบัญชี ${or(d.bankAccountName)}`,
+          T`ชื่อบัญชี: ${or(d.bankAccountName)}`,
           T`Account Name: ${or(d.bankAccountName)}`,
           { mode: "nested" },
         ),
         item(
-          T`เลขที่บัญชี ${or(d.bankAccountNumber)}`,
+          T`เลขที่บัญชี: ${or(d.bankAccountNumber)}`,
           T`Account Number: ${or(d.bankAccountNumber)}`,
           { mode: "nested" },
         ),
@@ -562,22 +562,30 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
                       : it.mode === "nested"
                         ? NESTED_INDENT
                         : FIRST_LINE_INDENT;
+                  // แต่ละภาษาห่อด้วย View wrap={false} แยกกัน (ไม่ใช่ห่อรวมกันเป็นก้อนเดียว)
+                  // เพื่อให้ "ทั้งย่อหน้า" ของภาษาใดภาษาหนึ่งที่ไม่พอดีหน้ากระดาษ ยกไปทั้งก้อนที่
+                  // หน้าถัดไป แทนที่จะตัดกลางประโยคค้างบรรทัดสุดท้ายไว้หน้านี้ — ส่วนอีกภาษาที่
+                  // พอดีอยู่แล้วไม่ต้องขยับตาม (อังกฤษกับไทยจึงอาจอยู่คนละหน้ากันได้ตามความยาวจริง)
                   return (
                     <View key={i}>
                       {showEn && (
-                        <RichText
-                          style={styles.para}
-                          segments={withPrefix(prefix, glueClauseNumber(it.en))}
-                        />
+                        <View wrap={false}>
+                          <RichText
+                            style={styles.para}
+                            segments={withPrefix(prefix, glueClauseNumber(it.en))}
+                          />
+                        </View>
                       )}
                       {showTh && (
-                        <RichText
-                          style={isBoth ? [styles.para, styles.paraThBoth] : styles.para}
-                          segments={withPrefix(
-                            prefix,
-                            isBoth ? stripClauseNumber(it.th) : glueClauseNumber(it.th),
-                          )}
-                        />
+                        <View wrap={false}>
+                          <RichText
+                            style={isBoth ? [styles.para, styles.paraThBoth] : styles.para}
+                            segments={withPrefix(
+                              prefix,
+                              isBoth ? stripClauseNumber(it.th) : glueClauseNumber(it.th),
+                            )}
+                          />
+                        </View>
                       )}
                     </View>
                   );
