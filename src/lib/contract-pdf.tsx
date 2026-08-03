@@ -45,9 +45,6 @@ const styles = StyleSheet.create({
   // ไม่ใช้ justify — ภาษาไทยไม่มีช่องว่างระหว่างคำตามธรรมชาติ ทำให้ react-pdf
   // ยืดช่องว่างที่มีอยู่ไม่กี่จุดจนห่างผิดปกติในบรรทัดที่มีคำน้อย
   para: { marginBottom: 4, textAlign: "left" },
-  // เวอร์ชันไทย+อังกฤษ: TH Sarabun ที่ 16pt ดูใหญ่กว่า Angsana New ที่ 16pt มาก
-  // ลดขนาดฟอนต์ไทยลงเล็กน้อยเฉพาะโหมดนี้ ให้มองเห็นเท่ากันกับบรรทัดอังกฤษคู่กัน
-  paraThBoth: { marginBottom: 4, textAlign: "left", fontSize: 14.5 },
   // signatures
   signWrap: { marginTop: 4 },
   signRow: {
@@ -121,22 +118,6 @@ function glueClauseNumber(segs: RichSegment[]): RichSegment[] {
   return text === first.text ? segs : [{ ...first, text }, ...rest];
 }
 
-// เวอร์ชันไทย+อังกฤษ: ตัวเลขข้อ (เช่น "5.2", "2.1") ขึ้นนำหน้าฝั่งอังกฤษไปแล้ว
-// ฝั่งไทยจึงไม่ต้องมีเลขซ้ำอีก — ตัดเลขนำหน้าออกจาก segment แรกของบรรทัดไทยเท่านั้น
-// (โหมดไทยล้วน/อังกฤษล้วน ไม่แตะ ยังคงมีเลขกำกับตามต้นฉบับเดิม)
-function stripClauseNumber(segs: RichSegment[]): RichSegment[] {
-  const [first, ...rest] = segs;
-  if (!first || first.bold) return segs;
-  const text = first.text.replace(/^\d+(?:\.\d+)?\s+/, "");
-  return text === first.text ? segs : [{ ...first, text }, ...rest];
-}
-
-// ตัดเลขนำหน้าหัวข้อใหญ่ฝั่งไทยออกในเวอร์ชันไทย+อังกฤษ (เลขขึ้นที่ฝั่งอังกฤษครั้งเดียวพอ)
-// เช่น "2. ทรัพย์สินที่ให้เช่า" -> "ทรัพย์สินที่ให้เช่า"
-function stripHeadingNumber(title: string): string {
-  return title.replace(/^\d+\.\s*/, "");
-}
-
 // Tagged template สร้าง segment: ข้อความมาตรฐานในเทมเพลต = ปกติ,
 // ค่าที่ ${...} แทรกเข้ามา (ข้อมูลที่ทีมกรอกก่อนออกสัญญา) = ตัวหนา + ขีดเส้นใต้
 // (แยกจากตัวหนาของคำนิยามคู่สัญญา เช่น "ผู้เช่า" ซึ่งหนาอย่างเดียว ไม่ขีดเส้นใต้)
@@ -179,11 +160,6 @@ type Item = {
   th: RichSegment[];
   en: RichSegment[];
   mode: ParaMode;
-  // ซ่อนบรรทัดนี้เมื่อโหมด "ไทย+อังกฤษ" (ใช้กับข้อ 1 ที่ต้นฉบับไทยแยกบรรทัด แต่เวอร์ชัน
-  // 2 ภาษาต้องการให้จบเป็นประโยคเดียวก่อน แล้วค่อยตามด้วยประโยคไทย — ดู bothOnly คู่กัน)
-  hideInBoth?: boolean;
-  // โชว์บรรทัดนี้เฉพาะโหมด "ไทย+อังกฤษ" เท่านั้น (ประโยครวมที่ใช้แทนบรรทัดที่ hideInBoth)
-  bothOnly?: boolean;
 };
 type Block = { titleTh: string; titleEn: string; items: Item[] };
 
@@ -196,49 +172,35 @@ function leaseBlocks(d: ContractData): Block[] {
   const item = (
     th: string | RichSegment[],
     en: string | RichSegment[],
-    opts: { mode?: ParaMode; hideInBoth?: boolean; bothOnly?: boolean } = {},
+    opts: { mode?: ParaMode } = {},
   ): Item => ({
     th: boldRoleTerms(seg(th)),
     en: boldRoleTerms(seg(en)),
     mode: opts.mode ?? "indent",
-    hideInBoth: opts.hideInBoth,
-    bothOnly: opts.bothOnly,
   });
   // ข้อ 1 และ 3 ไม่มีเลขข้อย่อย (x.y) ในเทมเพลตต้นฉบับ — บรรทัดต่อเนื่องจึงชิดขอบ
   // (บรรทัดที่ขึ้นข้อความ/ตัวละครใหม่ เช่น "ผู้ให้เช่า.../และผู้เช่า..." ยังเยื้องเหมือนข้ออื่น)
-  const flush = (
-    th: string | RichSegment[],
-    en: string | RichSegment[],
-    opts: { hideInBoth?: boolean; bothOnly?: boolean } = {},
-  ) => item(th, en, { ...opts, mode: "flush" });
+  const flush = (th: string | RichSegment[], en: string | RichSegment[]) =>
+    item(th, en, { mode: "flush" });
 
   return [
     {
       titleTh: "1. คู่สัญญา",
       titleEn: "1. Parties",
       items: [
-        // โหมดไทยเดี่ยว/อังกฤษเดี่ยว — แยกทีละบรรทัดตามต้นฉบับ (ไม่แตะ ตามที่ยืนยันแล้ว)
+        // แยกทีละบรรทัดตามต้นฉบับ — แต่ละภาษา (ไทย/อังกฤษ) เป็นคนละหมวดกันแล้ว จึงไม่ต้อง
+        // รวมเป็นประโยคเดียวข้ามภาษาเหมือนตอนแสดงแบบสลับบรรทัดอีกต่อไป
         item(
           T`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`,
           T`Lessor, name-surname ${or(d.lessorName)}, national ID / passport No. ${or(d.lessorIdOrPassport)}`,
-          { hideInBoth: true },
         ),
         flush(
           T`ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)}`,
           T`address ${or(d.lessorAddress)}, telephone ${or(d.lessorPhone)}`,
-          { hideInBoth: true },
         ),
         flush(
           'ต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า"',
           'hereinafter referred to as the "Lessor"',
-          { hideInBoth: true },
-        ),
-        // โหมดไทย+อังกฤษ — รวมเป็นประโยคเดียวจบต่อภาษา (อังกฤษก่อน แล้วตามด้วยไทย)
-        // เหมือนรูปแบบของฝั่งผู้เช่าด้านล่าง
-        item(
-          T`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)} ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้ให้เช่า"`,
-          T`Lessor, name-surname ${or(d.lessorName)}, national ID / passport No. ${or(d.lessorIdOrPassport)}, address ${or(d.lessorAddress)}, telephone ${or(d.lessorPhone)}, hereinafter referred to as the "Lessor"`,
-          { bothOnly: true },
         ),
         item(
           T`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`,
@@ -523,6 +485,27 @@ function SignBox({
   );
 }
 
+// เนื้อหาข้อสัญญา 1 ข้อ ของภาษาเดียว (ใช้ทั้งโหมดเดี่ยวและแต่ละหมวดของโหมดไทย+อังกฤษ)
+function ClauseBlockSection({ block, isEnglish }: { block: Block; isEnglish: boolean }) {
+  return (
+    <View style={styles.clauseBlock} wrap={false}>
+      <BiText style={styles.clauseTitle}>{isEnglish ? block.titleEn : block.titleTh}</BiText>
+      {block.items.map((it, i) => {
+        const prefix =
+          it.mode === "flush" ? "" : it.mode === "nested" ? NESTED_INDENT : FIRST_LINE_INDENT;
+        return (
+          <View key={i} wrap={false}>
+            <RichText
+              style={styles.para}
+              segments={withPrefix(prefix, glueClauseNumber(isEnglish ? it.en : it.th))}
+            />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang }) {
   const showTh = lang === "TH" || lang === "BOTH";
   const showEn = lang === "EN" || lang === "BOTH";
@@ -556,63 +539,16 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
           />
         )}
 
-        {/* wrap={false} เก็บทั้งข้อไว้หน้าเดียวกัน แต่โหมด BOTH เนื้อหายาวเป็น 2 เท่า (ไทย+อังกฤษ)
-            บางข้อ (เช่น 5, 6) อาจสูงเกิน 1 หน้า — บังคับไม่ให้ตัดหน้าจะทำให้ข้อความทับกันแทน
-            จึงอนุญาตให้ตัดหน้าได้เฉพาะโหมด BOTH */}
-        {(() => {
-          const isBoth = showEn && showTh;
-          return blocks.map((b) => (
-            <View key={b.titleTh} style={styles.clauseBlock} wrap={isBoth}>
-              <BiText
-                style={styles.clauseTitle}
-                minPresenceAhead={isBoth ? 40 : undefined}
-              >
-                {isBoth
-                  ? `${b.titleEn} / ${stripHeadingNumber(b.titleTh)}`
-                  : showEn
-                    ? b.titleEn
-                    : b.titleTh}
-              </BiText>
-              {b.items
-                .filter((it) => (isBoth ? !it.hideInBoth : !it.bothOnly))
-                .map((it, i) => {
-                  const prefix =
-                    it.mode === "flush"
-                      ? ""
-                      : it.mode === "nested"
-                        ? NESTED_INDENT
-                        : FIRST_LINE_INDENT;
-                  // แต่ละภาษาห่อด้วย View wrap={false} แยกกัน (ไม่ใช่ห่อรวมกันเป็นก้อนเดียว)
-                  // เพื่อให้ "ทั้งย่อหน้า" ของภาษาใดภาษาหนึ่งที่ไม่พอดีหน้ากระดาษ ยกไปทั้งก้อนที่
-                  // หน้าถัดไป แทนที่จะตัดกลางประโยคค้างบรรทัดสุดท้ายไว้หน้านี้ — ส่วนอีกภาษาที่
-                  // พอดีอยู่แล้วไม่ต้องขยับตาม (อังกฤษกับไทยจึงอาจอยู่คนละหน้ากันได้ตามความยาวจริง)
-                  return (
-                    <View key={i}>
-                      {showEn && (
-                        <View wrap={false}>
-                          <RichText
-                            style={styles.para}
-                            segments={withPrefix(prefix, glueClauseNumber(it.en))}
-                          />
-                        </View>
-                      )}
-                      {showTh && (
-                        <View wrap={false}>
-                          <RichText
-                            style={isBoth ? [styles.para, styles.paraThBoth] : styles.para}
-                            segments={withPrefix(
-                              prefix,
-                              isBoth ? stripClauseNumber(it.th) : glueClauseNumber(it.th),
-                            )}
-                          />
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-            </View>
-          ));
-        })()}
+        {/* โหมดไทย+อังกฤษ: แยกเป็นหมวดต่อข้อ — อังกฤษทั้งข้อก่อน (เหมือนสัญญาอังกฤษล้วนทุก
+            ประการ) แล้วตามด้วยไทยทั้งข้อ (เหมือนสัญญาไทยล้วน) แทนการสลับบรรทัดทีละย่อหน้า
+            ทั้งสองภาษาจึงเป็นก้อนเดียวกันขนาดเท่าโหมดเดี่ยว — wrap={false} เก็บทั้งข้อ
+            (หัวข้อ+ย่อหน้าทั้งหมดของภาษานั้น) ไว้หน้าเดียวกันได้แบบเดียวกับโหมดเดี่ยว */}
+        {blocks.map((b) => (
+          <View key={b.titleTh}>
+            {showEn && <ClauseBlockSection block={b} isEnglish />}
+            {showTh && <ClauseBlockSection block={b} isEnglish={false} />}
+          </View>
+        ))}
 
         {/* ลายเซ็น — เว้นบรรทัดไว้เซ็นมือ */}
         <View style={styles.signWrap} wrap={false}>
