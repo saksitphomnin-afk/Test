@@ -87,8 +87,8 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row", marginBottom: 3 },
   label: { width: "35%", color: "#6b7280" },
-  // ตัวหนา — เน้นค่าที่ทีมกรอกก่อนออกสัญญาให้ต่างจากป้ายชื่อฟิลด์
-  value: { width: "65%", fontWeight: "bold" },
+  // ตัวหนา + ขีดเส้นใต้ — เน้นค่าที่ทีมกรอกก่อนออกสัญญาให้ต่างจากป้ายชื่อฟิลด์
+  value: { width: "65%", fontWeight: "bold", textDecoration: "underline" },
 });
 
 // ==================== เงินตรา + คำอ่านไทย ====================
@@ -138,18 +138,38 @@ function stripHeadingNumber(title: string): string {
 }
 
 // Tagged template สร้าง segment: ข้อความมาตรฐานในเทมเพลต = ปกติ,
-// ค่าที่ ${...} แทรกเข้ามา (ข้อมูลที่ทีมกรอกก่อนออกสัญญา) = ตัวหนา
+// ค่าที่ ${...} แทรกเข้ามา (ข้อมูลที่ทีมกรอกก่อนออกสัญญา) = ตัวหนา + ขีดเส้นใต้
+// (แยกจากตัวหนาของคำนิยามคู่สัญญา เช่น "ผู้เช่า" ซึ่งหนาอย่างเดียว ไม่ขีดเส้นใต้)
 function T(strings: TemplateStringsArray, ...values: string[]): RichSegment[] {
   const segs: RichSegment[] = [];
   strings.forEach((str, i) => {
     if (str) segs.push({ text: str });
-    if (i < values.length) segs.push({ text: values[i], bold: true });
+    if (i < values.length) segs.push({ text: values[i], bold: true, underline: true });
   });
   return segs;
 }
 
 function withPrefix(prefix: string, segs: RichSegment[]): RichSegment[] {
   return prefix ? [{ text: prefix }, ...segs] : segs;
+}
+
+// คำนิยามคู่สัญญา — ทำตัวหนาทุกครั้งที่ปรากฏในเนื้อหา (ไม่ใช่แค่ตอนประกาศนิยามในข้อ 1)
+// ตามแบบฟอร์มต้นฉบับที่ผู้ใช้ส่งมา (ตัวหนาทั้งเอกสาร ไม่ใช่แค่ข้อที่เกี่ยวกับธนาคาร)
+const ROLE_TERMS = ["ผู้ให้เช่า", "ผู้เช่า", "Lessor", "Lessee"];
+const ROLE_TERMS_PATTERN = new RegExp(`(${ROLE_TERMS.join("|")})`, "g");
+
+function boldRoleTerms(segs: RichSegment[]): RichSegment[] {
+  const result: RichSegment[] = [];
+  for (const s of segs) {
+    if (s.bold) {
+      result.push(s);
+      continue;
+    }
+    for (const part of s.text.split(ROLE_TERMS_PATTERN)) {
+      if (part) result.push({ text: part, bold: ROLE_TERMS.includes(part) });
+    }
+  }
+  return result;
 }
 
 // ==================== สัญญาเช่า (ตามเทมเพลตผู้ใช้ 14 ข้อ — ไทย/อังกฤษ) ====================
@@ -178,8 +198,8 @@ function leaseBlocks(d: ContractData): Block[] {
     en: string | RichSegment[],
     opts: { mode?: ParaMode; hideInBoth?: boolean; bothOnly?: boolean } = {},
   ): Item => ({
-    th: seg(th),
-    en: seg(en),
+    th: boldRoleTerms(seg(th)),
+    en: boldRoleTerms(seg(en)),
     mode: opts.mode ?? "indent",
     hideInBoth: opts.hideInBoth,
     bothOnly: opts.bothOnly,

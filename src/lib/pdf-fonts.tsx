@@ -112,23 +112,26 @@ function scriptRuns(text: string): { latin: boolean; text: string }[] {
 // เมื่อเจอ "คำ" ที่ไม่มีจุดตัดเลย) ทำให้เลขดูเหมือนขาด/ผิด แก้โดยแตกเป็น nested <Text> กลุ่มละ
 // ~4 ตัวอักษร เพราะขอบเขตของ nested Text ถือเป็นจุดตัดบรรทัดที่ปลอดภัยอยู่แล้ว (ไม่มียัติภังค์)
 const NUMERIC_TOKEN = /^[\d/().-]{7,}$/;
+function chunkNumeric(text: string): string[] {
+  if (!NUMERIC_TOKEN.test(text)) return [text];
+  const chunks: string[] = [];
+  let i = 0;
+  while (i < text.length) {
+    let end = Math.min(i + 4, text.length);
+    // ถ้ายัติภังค์ "-" เดิม (เช่นในเลขบัญชี/เบอร์โทร) ตกท้ายกลุ่มพอดี จะไปชนกับ
+    // ยัติภังค์ที่ textkit เติมเองตอนตัดบรรทัด กลายเป็น "--" ซ้อนกัน — ตัดกลุ่มให้สั้นลง
+    // 1 ตัว ให้ "-" ไปขึ้นต้นกลุ่มถัดไปแทน (ขึ้นต้นด้วย "-" ไม่มีปัญหาอะไร)
+    if (end < text.length && text[end - 1] === "-") end--;
+    if (end === i) end = i + 1;
+    chunks.push(text.slice(i, end));
+    i = end;
+  }
+  return chunks;
+}
+
 function chunkForBreaks(text: string, latin: boolean): string[] {
   if (latin) return [text];
-  if (NUMERIC_TOKEN.test(text)) {
-    const chunks: string[] = [];
-    let i = 0;
-    while (i < text.length) {
-      let end = Math.min(i + 4, text.length);
-      // ถ้ายัติภังค์ "-" เดิม (เช่นในเลขบัญชี/เบอร์โทร) ตกท้ายกลุ่มพอดี จะไปชนกับ
-      // ยัติภังค์ที่ textkit เติมเองตอนตัดบรรทัด กลายเป็น "--" ซ้อนกัน — ตัดกลุ่มให้สั้นลง
-      // 1 ตัว ให้ "-" ไปขึ้นต้นกลุ่มถัดไปแทน (ขึ้นต้นด้วย "-" ไม่มีปัญหาอะไร)
-      if (end < text.length && text[end - 1] === "-") end--;
-      if (end === i) end = i + 1;
-      chunks.push(text.slice(i, end));
-      i = end;
-    }
-    return chunks;
-  }
+  if (NUMERIC_TOKEN.test(text)) return chunkNumeric(text);
   return [insertBreathingSpaces(text)];
 }
 
@@ -143,14 +146,23 @@ function chunkForBreaks(text: string, latin: boolean): string[] {
 const MAX_UNBREAKABLE_RUN = 28;
 const CHUNK_TARGET = 16;
 const HARD_SLICE_LIMIT = 16;
-function insertBreathingSpaces(text: string): string {
-  return text
-    .split(/( +)/)
-    .map((word) => {
-      if (/^ +$/.test(word) || word.length <= MAX_UNBREAKABLE_RUN) return word;
+
+// คำนวณ "ตำแหน่ง" ในข้อความที่ควรแทรกช่องว่างจริงไว้ข้างหน้า (ไม่แก้ข้อความจริง) —
+// แยกออกมาจากการแทรกจริง เพื่อให้ใช้ร่วมกับข้อความที่ประกอบจากหลาย segment ได้
+// (ดู breatheAcrossSegments) โดยไม่ขึ้นกับขอบเขต segment ใด ๆ
+function computeBreathingOffsets(text: string): Set<number> {
+  const offsets = new Set<number>();
+  let pos = 0;
+  for (const word of text.split(/( +)/)) {
+    if (!/^ +$/.test(word) && word.length > MAX_UNBREAKABLE_RUN) {
       const clusters = thaiClusters(word);
-      const pieces: string[] = [];
+      let acc = 0;
       let cur = "";
+      // ห้ามแทรกช่องว่างที่ตำแหน่ง acc===0 (จุดเริ่ม "คำ" นี้เอง) เพราะข้างหน้ามันมีช่องว่าง
+      // จริง (หรือจุดเริ่มข้อความ) คั่นอยู่แล้วเสมอ — ไม่งั้นจะกลายเป็นช่องว่างซ้อนสองอัน
+      const addOffset = () => {
+        if (acc > 0) offsets.add(pos + acc);
+      };
       for (const c of clusters) {
         if (c.length > HARD_SLICE_LIMIT) {
           // พยางค์นี้ (ตาม thaiClusters) ยาวเกิน HARD_SLICE_LIMIT เอง (ช่วงยาวที่ไม่มี
@@ -159,21 +171,42 @@ function insertBreathingSpaces(text: string): string {
           // ไปทั้งดุ้น — ถ้าสุดท้ายยังไม่พอดีบรรทัดจริง ๆ ก็ยอมให้ fallback เดิมขึ้น
           // ยัติภังค์เป็นกรณีหายากแทน ดีกว่าคำแหว่งผิดที่บ่อย ๆ
           if (cur) {
-            pieces.push(cur);
+            addOffset();
+            acc += cur.length;
             cur = "";
           }
-          pieces.push(c);
+          addOffset();
+          acc += c.length;
         } else if (cur && cur.length + c.length > CHUNK_TARGET) {
-          pieces.push(cur);
+          addOffset();
+          acc += cur.length;
           cur = c;
         } else {
           cur += c;
         }
       }
-      if (cur) pieces.push(cur);
-      return pieces.join(" ");
-    })
-    .join("");
+      // ต้องคั่นก่อนก้อนสุดท้ายที่ค้างอยู่ใน cur ด้วย (เทียบเท่า pieces.join(" ") ของโค้ด
+      // เดิมที่ใส่ตัวคั่นระหว่างทุกชิ้นใน pieces เสมอ รวมทั้งก่อนชิ้นสุดท้าย) — ถ้าลืมขั้นนี้
+      // ก้อนสุดท้ายจะไปติดกับก้อนก่อนหน้าโดยไม่มีช่องว่างคั่น เสี่ยงยัติภังค์ตอนตัดบรรทัด
+      // แต่ต้องมีเงื่อนไข "cur ไม่ว่าง" ด้วย (เหมือน if(cur) ของโค้ดเดิม) — ไม่งั้นกรณีที่
+      // พยางค์สุดท้ายเพิ่งถูก flush ไปแล้ว (cur ว่างพอดี) จะไปแทรกซ้ำที่ตำแหน่งท้ายคำ ซึ่งชน
+      // กับช่องว่างจริงที่ตามมาอยู่แล้วพอดี กลายเป็นช่องว่างซ้อนสองอัน
+      if (cur) addOffset();
+    }
+    pos += word.length;
+  }
+  return offsets;
+}
+
+function insertBreathingSpaces(text: string): string {
+  const offsets = computeBreathingOffsets(text);
+  if (offsets.size === 0) return text;
+  let out = "";
+  for (let i = 0; i < text.length; i++) {
+    if (offsets.has(i)) out += " ";
+    out += text[i];
+  }
+  return out;
 }
 
 // react-pdf/textkit treats EVERY boundary between two adjacent style runs that
@@ -225,7 +258,50 @@ export function BiText({
   );
 }
 
-export type RichSegment = { text: string; bold?: boolean };
+export type RichSegment = { text: string; bold?: boolean; underline?: boolean };
+
+// boldRoleTerms (contract-pdf.tsx) แตกข้อความเป็นหลาย segment ที่รอยต่อคำนิยาม
+// ("ผู้เช่า"/"ผู้ให้เช่า") ซึ่งมักไม่มีช่องว่างจริงคั่นกับคำข้างเคียงเลย — ถ้าคำนวณจุดแทรก
+// ช่องว่าง (computeBreathingOffsets) แยกทีละ segment เหมือน BiText จะมองไม่เห็นบริบท
+// ทั้งประโยค ทำให้พลาดจุดปลอดภัยที่เคยมีตอนข้อความยังเป็นก้อนเดียว (เกิดยัติภังค์ใหม่ที่
+// รอยต่อ) ฟังก์ชันนี้จึงต่อข้อความทุก segment เป็นก้อนเดียวก่อน คำนวณจุดแทรกช่องว่างข้าม
+// ขอบเขต segment ได้ แล้วค่อยตัดกลับเป็นชิ้นตามสไตล์ (ตัวหนา/ขีดเส้นใต้) เดิม
+function breatheAcrossSegments(segments: RichSegment[]): RichSegment[] {
+  const flatChars: string[] = [];
+  const owner: number[] = [];
+  segments.forEach((s, idx) => {
+    for (const ch of s.text) {
+      flatChars.push(ch);
+      owner.push(idx);
+    }
+  });
+  const offsets = computeBreathingOffsets(flatChars.join(""));
+  if (offsets.size === 0) return segments;
+
+  const result: RichSegment[] = [];
+  let curText = "";
+  let curOwner = -1;
+  const flush = () => {
+    if (!curText) return;
+    const src = segments[curOwner];
+    result.push({ text: curText, bold: src?.bold, underline: src?.underline });
+    curText = "";
+  };
+  for (let i = 0; i < flatChars.length; i++) {
+    if (offsets.has(i)) {
+      flush();
+      result.push({ text: " " });
+      curOwner = -1;
+    }
+    if (owner[i] !== curOwner) {
+      flush();
+      curOwner = owner[i];
+    }
+    curText += flatChars[i];
+  }
+  flush();
+  return result;
+}
 
 /**
  * เหมือน BiText แต่รับ "ส่วนย่อย" (segments) ที่แต่ละส่วนเลือกได้ว่าจะตัวหนา (bold) หรือไม่
@@ -239,16 +315,21 @@ export function RichText({
   segments: RichSegment[];
   style?: Style | Style[];
 }) {
+  const breathed = breatheAcrossSegments(segments);
   return (
     <Text style={style} {...NO_HYPHEN_PROP}>
-      {segments.map((seg, si) =>
+      {breathed.map((seg, si) =>
         scriptRuns(seg.text).map((r, ri) =>
-          chunkForBreaks(r.text, r.latin).map((c, ci) => (
+          // ช่องว่างที่แทรกใหม่ (และ scriptRuns แบ่งอื่น ๆ) ผ่าน computeBreathingOffsets
+          // ไปแล้วในระดับข้อความเต็ม ไม่ต้องเรียก insertBreathingSpaces ซ้ำ — ใช้ chunkNumeric
+          // ตรง ๆ (ยังต้องแบ่งเลขบัญชี/เบอร์โทรกลุ่มละ ๆ อยู่)
+          chunkNumeric(r.text).map((c, ci) => (
             <Text
               key={`${si}-${ri}-${ci}`}
               style={{
                 fontFamily: r.latin ? "AngsanaNew" : "THSarabun",
                 fontWeight: seg.bold ? "bold" : undefined,
+                textDecoration: seg.underline ? "underline" : undefined,
               }}
             >
               {c}
