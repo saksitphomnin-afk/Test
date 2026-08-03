@@ -91,6 +91,29 @@ function scriptRuns(text: string): { latin: boolean; text: string }[] {
   return runs;
 }
 
+// ตัวเลขยาว ๆ ที่ไม่มีช่องว่างเว้นวรรค (เลขบัตรประชาชน/เบอร์บัญชี/เบอร์โทร) ไม่มีจุดให้ตัดบรรทัด
+// ตามธรรมชาติ — เมื่อยาวเกินบรรทัด react-pdf/textkit จะ "บังคับตัดกลางตัวเลข" พร้อมใส่ยัติภังค์ (-)
+// ให้เอง (ไม่ใช่จาก hyphenation callback ที่ตั้งไว้ — เป็นพฤติกรรม fallback ภายในของ textkit
+// เมื่อเจอ "คำ" ที่ไม่มีจุดตัดเลย) ทำให้เลขดูเหมือนขาด/ผิด แก้โดยแตกเป็น nested <Text> กลุ่มละ
+// ~4 ตัวอักษร เพราะขอบเขตของ nested Text ถือเป็นจุดตัดบรรทัดที่ปลอดภัยอยู่แล้ว (ไม่มียัติภังค์)
+const NUMERIC_TOKEN = /^[\d/().-]{7,}$/;
+function chunkForBreaks(text: string): string[] {
+  if (!NUMERIC_TOKEN.test(text)) return [text];
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += 4) chunks.push(text.slice(i, i + 4));
+  return chunks;
+}
+
+// react-pdf/textkit treats EVERY boundary between two adjacent style runs that
+// aren't separated by a literal space (e.g. a bold value immediately followed by
+// punctuation like ", ") as an optional low-priority hyphenation point — and will
+// render a visible hyphen there if it helps line-fitting, even though neither side
+// is an actual hyphenatable word. `hyphenationPenalty` (an undocumented but real
+// <Text> prop read by @react-pdf/layout) raises the cost of using that break so
+// high it's never chosen in a normal single-page-width document.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const NO_HYPHEN_PROP = { hyphenationPenalty: 100000 } as any;
+
 /**
  * ข้อความสองภาษา — ตัวไทยใช้ TH Sarabun, ตัวอังกฤษ/ตัวเลขใช้ Angsana New (ขยายให้สูงเท่ากัน)
  * ใช้แทน <Text> ทุกที่ที่ข้อความอาจปนไทย+อังกฤษ (เช่น ชื่อโครงการ "Ashton Chula - Silom")
@@ -113,15 +136,17 @@ export function BiText({
   const text = nodeToText(children);
   const runs = scriptRuns(text);
   return (
-    <Text style={style}>
-      {runs.map((r, i) => (
-        <Text
-          key={i}
-          style={{ fontFamily: r.latin ? "AngsanaNew" : "THSarabun" }}
-        >
-          {r.text}
-        </Text>
-      ))}
+    <Text style={style} {...NO_HYPHEN_PROP}>
+      {runs.map((r, i) =>
+        chunkForBreaks(r.text).map((c, ci) => (
+          <Text
+            key={`${i}-${ci}`}
+            style={{ fontFamily: r.latin ? "AngsanaNew" : "THSarabun" }}
+          >
+            {c}
+          </Text>
+        )),
+      )}
     </Text>
   );
 }
@@ -141,19 +166,21 @@ export function RichText({
   style?: Style | Style[];
 }) {
   return (
-    <Text style={style}>
+    <Text style={style} {...NO_HYPHEN_PROP}>
       {segments.map((seg, si) =>
-        scriptRuns(seg.text).map((r, ri) => (
-          <Text
-            key={`${si}-${ri}`}
-            style={{
-              fontFamily: r.latin ? "AngsanaNew" : "THSarabun",
-              fontWeight: seg.bold ? "bold" : undefined,
-            }}
-          >
-            {r.text}
-          </Text>
-        )),
+        scriptRuns(seg.text).map((r, ri) =>
+          chunkForBreaks(r.text).map((c, ci) => (
+            <Text
+              key={`${si}-${ri}-${ci}`}
+              style={{
+                fontFamily: r.latin ? "AngsanaNew" : "THSarabun",
+                fontWeight: seg.bold ? "bold" : undefined,
+              }}
+            >
+              {c}
+            </Text>
+          )),
+        ),
       )}
     </Text>
   );
