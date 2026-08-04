@@ -178,15 +178,17 @@ export default async function CustomersPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       {canManage ? (
                         <div className="flex items-center justify-end gap-2">
-                          {latestRoomIdByCustomerId.has(c.id) && (
-                            <LinkButton
-                              href={`/rooms/${latestRoomIdByCustomerId.get(c.id)}/contract?customerId=${c.id}`}
-                              variant="secondary"
-                              size="sm"
-                            >
-                              ทำสัญญา
-                            </LinkButton>
-                          )}
+                          <LinkButton
+                            href={
+                              latestRoomIdByCustomerId.has(c.id)
+                                ? `/rooms/${latestRoomIdByCustomerId.get(c.id)}/contract?customerId=${c.id}`
+                                : `/customers/${c.id}/match`
+                            }
+                            variant="secondary"
+                            size="sm"
+                          >
+                            ทำสัญญา
+                          </LinkButton>
                           <LinkButton
                             href={`/customers/${c.id}/edit`}
                             variant="secondary"
