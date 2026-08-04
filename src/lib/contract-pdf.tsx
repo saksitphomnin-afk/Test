@@ -192,7 +192,7 @@ function leaseBlocks(d: ContractData): Block[] {
         // รวมเป็นประโยคเดียวข้ามภาษาเหมือนตอนแสดงแบบสลับบรรทัดอีกต่อไป
         item(
           T`ผู้ให้เช่า ชื่อ-นามสกุล ${or(d.lessorName)} เลขประจำตัวประชาชน ${or(d.lessorIdOrPassport)}`,
-          T`Lessor, name-surname ${or(d.lessorName)}, national ID / passport No. ${or(d.lessorIdOrPassport)}`,
+          T`Lessor, name-surname ${or(d.lessorNameEn || d.lessorName)}, national ID / passport No. ${or(d.lessorIdOrPassport)}`,
         ),
         flush(
           T`ที่อยู่ ${or(d.lessorAddress)} โทรศัพท์ ${or(d.lessorPhone)}`,
@@ -204,7 +204,7 @@ function leaseBlocks(d: ContractData): Block[] {
         ),
         item(
           T`และผู้เช่า ชื่อ-นามสกุล ${or(d.tenantName)} เลขประจำตัวประชาชน ${or(d.tenantIdOrPassport)} ที่อยู่ ${or(d.tenantAddress)} โทรศัพท์ ${or(d.tenantPhone)} ต่อไปในสัญญานี้เรียกว่า "ผู้เช่า"`,
-          T`and Lessee, name-surname ${or(d.tenantName)}, national ID / passport No. ${or(d.tenantIdOrPassport)}, address ${or(d.tenantAddress)}, telephone ${or(d.tenantPhone)}, hereinafter referred to as the "Lessee"`,
+          T`and Lessee, name-surname ${or(d.tenantNameEn || d.tenantName)}, national ID / passport No. ${or(d.tenantIdOrPassport)}, address ${or(d.tenantAddress)}, telephone ${or(d.tenantPhone)}, hereinafter referred to as the "Lessee"`,
         ),
         flush(
           "ทั้งสองฝ่ายตกลงทำสัญญาโดยมีรายละเอียดดังต่อไปนี้",

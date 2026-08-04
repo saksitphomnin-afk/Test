@@ -21,6 +21,10 @@ const rentLessor: Section = {
   fields: [
     { name: "lessorName", label: "ชื่อ-นามสกุล / Name" },
     {
+      name: "lessorNameEn",
+      label: "ชื่อ-นามสกุล (ภาษาอังกฤษ) / Name in English (กรณีลูกค้า/เจ้าของต่างชาติ ไม่บังคับ)",
+    },
+    {
       name: "lessorIdOrPassport",
       label: "เลขบัตรประชาชน/พาสปอร์ต/เลขทะเบียนนิติบุคคล",
     },
@@ -34,6 +38,10 @@ const rentTenant: Section = {
   title: "ผู้เช่า (Tenant)",
   fields: [
     { name: "tenantName", label: "ชื่อ-นามสกุล / Name" },
+    {
+      name: "tenantNameEn",
+      label: "ชื่อ-นามสกุล (ภาษาอังกฤษ) / Name in English (กรณีลูกค้า/เจ้าของต่างชาติ ไม่บังคับ)",
+    },
     {
       name: "tenantIdOrPassport",
       label: "เลขบัตรประชาชน/พาสปอร์ต/เลขทะเบียนนิติบุคคล",
