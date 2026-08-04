@@ -10,19 +10,24 @@ export const dynamic = "force-dynamic";
 
 export default async function ContractPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ customerId?: string }>;
 }) {
   const user = await requireUser();
   const { id } = await params;
+  const { customerId: initialCustomerId } = await searchParams;
   const room = await prisma.room.findUnique({
     where: { id },
     include: { contracts: true },
   });
   if (!room) notFound();
 
+  // member เห็นเฉพาะลูกค้าของตัวเอง / admin เห็นทั้งหมด (เหมือนหน้า Enquiry) — ให้แอดมินกดปุ่ม
+  // "ทำสัญญา" จากลูกค้าของสมาชิกคนอื่นแล้วเลือกลูกค้าคนนั้นในฟอร์มได้ด้วย
   const customers = await prisma.customer.findMany({
-    where: { createdById: user.id },
+    where: user.role === "ADMIN" ? {} : { createdById: user.id },
     orderBy: { createdAt: "desc" },
     select: { id: true, code: true, name: true, phone: true },
   });
@@ -80,6 +85,7 @@ export default async function ContractPage({
         savedContractIds={savedContractIds}
         savedBooking={savedBooking}
         customers={customers}
+        initialCustomerId={initialCustomerId}
       />
     </div>
   );

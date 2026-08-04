@@ -19,25 +19,35 @@ export default async function CustomersPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // จับคู่ห้อง + ใบเสร็จที่จ่ายเงินจองแล้วให้แต่ละลูกค้า (เอาสัญญาล่าสุดพอถ้ามีหลายรายการ)
+  // จับคู่ห้อง + ใบเสร็จให้แต่ละลูกค้า (เอาสัญญาล่าสุดพอถ้ามีหลายรายการ) — ดึงสัญญาทั้งหมด
+  // (ไม่กรองแค่จ่ายเงินจองแล้ว) เพื่อรู้ว่าลูกค้าคนนี้เคยแมทกับห้องไหนบ้าง จะได้ลิงก์ไปทำสัญญา
+  // ต่อจากห้องเดิมได้เลยจากหน้า Enquiry โดยไม่ต้องเข้าไปที่หน้าห้อง — ส่วนคอลัมน์ใบเสร็จยังคง
+  // แสดงเฉพาะสัญญาที่จ่ายเงินจองแล้วเหมือนเดิม
   const customerIds = customers.map((c) => c.id);
-  const paidContracts =
+  const allContracts =
     customerIds.length > 0
       ? await prisma.contract.findMany({
-          where: { customerId: { in: customerIds }, bookingPaid: true },
+          where: { customerId: { in: customerIds } },
           orderBy: { updatedAt: "desc" },
           select: {
             id: true,
             customerId: true,
+            roomId: true,
+            bookingPaid: true,
             slipUrl: true,
             bookingAmount: true,
             room: { select: { projectName: true, roomNumber: true } },
           },
         })
       : [];
-  const contractByCustomerId = new Map<string, (typeof paidContracts)[number]>();
-  for (const c of paidContracts) {
-    if (c.customerId && !contractByCustomerId.has(c.customerId)) {
+  const contractByCustomerId = new Map<string, (typeof allContracts)[number]>();
+  const latestRoomIdByCustomerId = new Map<string, string>();
+  for (const c of allContracts) {
+    if (!c.customerId) continue;
+    if (!latestRoomIdByCustomerId.has(c.customerId)) {
+      latestRoomIdByCustomerId.set(c.customerId, c.roomId);
+    }
+    if (c.bookingPaid && !contractByCustomerId.has(c.customerId)) {
       contractByCustomerId.set(c.customerId, c);
     }
   }
@@ -168,6 +178,15 @@ export default async function CustomersPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       {canManage ? (
                         <div className="flex items-center justify-end gap-2">
+                          {latestRoomIdByCustomerId.has(c.id) && (
+                            <LinkButton
+                              href={`/rooms/${latestRoomIdByCustomerId.get(c.id)}/contract?customerId=${c.id}`}
+                              variant="secondary"
+                              size="sm"
+                            >
+                              ทำสัญญา
+                            </LinkButton>
+                          )}
                           <LinkButton
                             href={`/customers/${c.id}/edit`}
                             variant="secondary"

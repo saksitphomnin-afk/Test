@@ -88,6 +88,7 @@ export function ContractForm({
   savedContractIds,
   savedBooking,
   customers,
+  initialCustomerId,
 }: {
   roomId: string;
   prefill: Record<ContractType, ContractData>;
@@ -95,6 +96,9 @@ export function ContractForm({
   savedContractIds: Partial<Record<ContractType, string>>;
   savedBooking: Partial<Record<ContractType, ContractBooking>>;
   customers: ContractCustomer[];
+  // มาจาก query param ?customerId= ตอนกดปุ่ม "ทำสัญญา" จากหน้า Enquiry — ใช้เป็นค่าเริ่มต้น
+  // เฉพาะตอนที่ยังไม่มีลูกค้าที่บันทึกไว้กับสัญญาประเภทนี้ของห้องนี้อยู่แล้ว (ไม่ทับของเดิม)
+  initialCustomerId?: string;
 }) {
   const [type, setType] = useState<ContractType>("RENT");
   const [savedIds, setSavedIds] =
@@ -120,17 +124,26 @@ export function ContractForm({
   }, [state.contractId]);
 
   const currentId = savedIds[type];
+  const booking = savedBooking[type];
+  const nameField = type === "RENT" ? "tenantName" : "lesseeName";
+  const phoneField = type === "RENT" ? "tenantPhone" : "lesseePhone";
+  // ถ้าสัญญาประเภทนี้ของห้องนี้ยังไม่เคยผูกลูกค้าไว้ (booking.customerId ว่าง) ให้ใช้ลูกค้าจาก
+  // query param (มาจากปุ่ม "ทำสัญญา" ในหน้า Enquiry) เป็นค่าเริ่มต้นแทน ไม่ทับของที่บันทึกไว้แล้ว
+  const fallbackCustomer =
+    !booking?.customerId && initialCustomerId
+      ? customerMap.get(initialCustomerId)
+      : undefined;
   const values: ContractData = {
     ...prefill[type],
+    ...(fallbackCustomer
+      ? { [nameField]: fallbackCustomer.name, [phoneField]: fallbackCustomer.phone }
+      : {}),
     ...(savedData[type] ?? {}),
   };
-  const booking = savedBooking[type];
 
   function handleCustomerChange(customerId: string) {
     const customer = customerMap.get(customerId);
     if (!customer || !formRef.current) return;
-    const nameField = type === "RENT" ? "tenantName" : "lesseeName";
-    const phoneField = type === "RENT" ? "tenantPhone" : "lesseePhone";
     const nameInput = formRef.current.elements.namedItem(
       nameField,
     ) as HTMLInputElement | null;
@@ -170,7 +183,7 @@ export function ContractForm({
             <Select
               id="customerId"
               name="customerId"
-              defaultValue={booking?.customerId ?? ""}
+              defaultValue={booking?.customerId ?? initialCustomerId ?? ""}
               onChange={(e) => handleCustomerChange(e.target.value)}
             >
               <option value="">— เลือกลูกค้า —</option>
