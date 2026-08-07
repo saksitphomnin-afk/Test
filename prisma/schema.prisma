@@ -169,6 +169,34 @@ model Contract {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
+  furnitureItems FurnitureItem[]
+
   @@index([roomId])
   @@index([customerId])
+}
+
+enum FurnitureCategory {
+  LIVING
+  BEDROOM
+  MASTER_BEDROOM
+  KITCHEN
+  BALCONY
+  BATHROOM_1
+  BATHROOM_2
+}
+
+// รูปเฟอร์นิเจอร์ + คำอธิบายทีละรูป ผูกกับสัญญา (ไม่ใช่ห้อง) เพราะสภาพเฟอร์นิเจอร์ต้องบันทึกใหม่
+// ทุกครั้งที่มีผู้เช่า/ผู้ซื้อรายใหม่ ไม่ควรผูกค้างข้ามผู้เช่า
+model FurnitureItem {
+  id         String            @id @default(cuid())
+  contractId String
+  contract   Contract          @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  category   FurnitureCategory
+  isDefect   Boolean           @default(false)
+  caption    String            @default("")
+  url        String
+  sortOrder  Int               @default(0)
+  createdAt  DateTime          @default(now())
+
+  @@index([contractId])
 }

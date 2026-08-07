@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth-helpers";
 import { LinkButton } from "@/components/ui/Button";
 import { DeleteCustomerButton } from "@/components/DeleteCustomerButton";
+import { DocumentMenu } from "@/components/DocumentMenu";
 import { CUSTOMER_STATUS_META } from "@/lib/customers";
 import { formatDateTime } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -19,10 +20,10 @@ export default async function CustomersPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // จับคู่ห้อง + ใบเสร็จให้แต่ละลูกค้า (เอาสัญญาล่าสุดพอถ้ามีหลายรายการ) — ดึงสัญญาทั้งหมด
-  // (ไม่กรองแค่จ่ายเงินจองแล้ว) เพื่อรู้ว่าลูกค้าคนนี้เคยแมทกับห้องไหนบ้าง จะได้ลิงก์ไปทำสัญญา
-  // ต่อจากห้องเดิมได้เลยจากหน้า Enquiry โดยไม่ต้องเข้าไปที่หน้าห้อง — ส่วนคอลัมน์ใบเสร็จยังคง
-  // แสดงเฉพาะสัญญาที่จ่ายเงินจองแล้วเหมือนเดิม
+  // จับคู่ห้อง + เอกสารให้แต่ละลูกค้า (เอาสัญญาล่าสุดพอถ้ามีหลายรายการ) — ดึงสัญญาทั้งหมด
+  // (ไม่กรองแค่จ่ายเงินจองแล้ว) เพื่อรู้ว่าลูกค้าคนนี้เคยแมทกับห้องไหนบ้าง จะได้ลิงก์ไปทำสัญญา/ดูสัญญา/
+  // เฟอร์นิเจอร์ต่อจากห้องเดิมได้เลยจากหน้า Enquiry โดยไม่ต้องเข้าไปที่หน้าห้อง — ส่วนตัวเลือก
+  // "ดาวน์โหลดใบเสร็จ" ใน dropdown เอกสารเท่านั้นที่ยังต้องเช็คว่าจ่ายเงินจองแล้วและมีสลิปก่อน
   const customerIds = customers.map((c) => c.id);
   const allContracts =
     customerIds.length > 0
@@ -47,7 +48,7 @@ export default async function CustomersPage() {
     if (!latestRoomIdByCustomerId.has(c.customerId)) {
       latestRoomIdByCustomerId.set(c.customerId, c.roomId);
     }
-    if (c.bookingPaid && !contractByCustomerId.has(c.customerId)) {
+    if (!contractByCustomerId.has(c.customerId)) {
       contractByCustomerId.set(c.customerId, c);
     }
   }
@@ -149,21 +150,16 @@ export default async function CustomersPage() {
                         const matched = contractByCustomerId.get(c.id);
                         if (!matched) return <span className="text-gray-300">-</span>;
                         return (
-                          <div>
-                            <span className="block text-gray-700">
-                              ห้อง {matched.room.projectName} {matched.room.roomNumber}
-                            </span>
-                            {matched.slipUrl && (
-                              <a
-                                href={`/api/contract/${matched.id}/receipt`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-brand-600 hover:underline"
-                              >
-                                ⬇ ใบเสร็จ
-                              </a>
-                            )}
-                          </div>
+                          <DocumentMenu
+                            roomLabel={`ห้อง ${matched.room.projectName} ${matched.room.roomNumber}`}
+                            contractHref={`/rooms/${matched.roomId}/contract?customerId=${c.id}`}
+                            receiptHref={
+                              matched.bookingPaid && matched.slipUrl
+                                ? `/api/contract/${matched.id}/receipt`
+                                : undefined
+                            }
+                            furnitureHref={`/customers/${c.id}/furniture`}
+                          />
                         );
                       })()}
                     </td>
