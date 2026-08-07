@@ -44,6 +44,78 @@ function withCommas(value: string): string {
   return digits ? Number(digits).toLocaleString("en-US") : "";
 }
 
+// คำนวณวันสิ้นสุดสัญญา = วันเริ่ม + N เดือน - 1 วัน (เช่น เริ่ม 1 ก.ย. + 12 เดือน = 1 ก.ย.ปีถัดไป
+// ลบ 1 วัน = 31 ส.ค.) ใช้ native Date.setMonth/setDate ซึ่งจัดการ rollover ปี/จำนวนวันในเดือนให้เอง
+function computeEndDate(startDate: string, durationMonths: string): string {
+  const start = new Date(startDate);
+  const months = Number(durationMonths);
+  if (Number.isNaN(start.getTime()) || !Number.isFinite(months) || months <= 0) return "";
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + months);
+  end.setDate(end.getDate() - 1);
+  return end.toISOString().slice(0, 10);
+}
+
+const LEASE_TERM_TITLE = "ระยะเวลาของสัญญา (Lease Term)";
+
+// วันเริ่ม + ระยะเวลา(เดือน) คำนวณวันสิ้นสุดให้อัตโนมัติ — ผู้ใช้ยังพิมพ์ทับวันสิ้นสุดเองได้
+// แต่ถ้าแก้วันเริ่ม/ระยะเวลาอีกครั้ง ค่าที่พิมพ์ทับจะถูกคำนวณทับกลับ (ตามที่ตกลงกับทีมงาน)
+function LeaseTermFields({
+  defaultStartDate,
+  defaultDurationMonths,
+  defaultEndDate,
+}: {
+  defaultStartDate: string;
+  defaultDurationMonths: string;
+  defaultEndDate: string;
+}) {
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [duration, setDuration] = useState(defaultDurationMonths);
+  const [endDate, setEndDate] = useState(defaultEndDate);
+
+  function handleStartOrDurationChange(nextStart: string, nextDuration: string) {
+    setStartDate(nextStart);
+    setDuration(nextDuration);
+    const computed = computeEndDate(nextStart, nextDuration);
+    if (computed) setEndDate(computed);
+  }
+
+  return (
+    <>
+      <FormRow label="วันเริ่มสัญญา / Start date" htmlFor="startDate">
+        <Input
+          id="startDate"
+          name="startDate"
+          type="date"
+          value={startDate}
+          onChange={(e) => handleStartOrDurationChange(e.target.value, duration)}
+        />
+      </FormRow>
+      <FormRow label="ระยะเวลา (เดือน) / Duration (months)" htmlFor="durationMonths">
+        <Input
+          id="durationMonths"
+          name="durationMonths"
+          type="number"
+          value={duration}
+          onChange={(e) => handleStartOrDurationChange(startDate, e.target.value)}
+        />
+      </FormRow>
+      <FormRow
+        label="วันสิ้นสุดสัญญา / End date (คำนวณอัตโนมัติ แก้ไขเองได้)"
+        htmlFor="endDate"
+      >
+        <Input
+          id="endDate"
+          name="endDate"
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+        />
+      </FormRow>
+    </>
+  );
+}
+
 function MoneyInput({
   id,
   name,
@@ -250,29 +322,37 @@ export function ContractForm({
               {section.title}
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {section.fields.map((f) => (
-                <FormRow
-                  key={f.name}
-                  label={f.label}
-                  htmlFor={f.name}
-                  className={f.full ? "sm:col-span-2" : undefined}
-                >
-                  {f.type === "textarea" ? (
-                    <Textarea
-                      id={f.name}
-                      name={f.name}
-                      defaultValue={values[f.name] ?? ""}
-                    />
-                  ) : (
-                    <Input
-                      id={f.name}
-                      name={f.name}
-                      type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
-                      defaultValue={values[f.name] ?? ""}
-                    />
-                  )}
-                </FormRow>
-              ))}
+              {section.title === LEASE_TERM_TITLE ? (
+                <LeaseTermFields
+                  defaultStartDate={values.startDate ?? ""}
+                  defaultDurationMonths={values.durationMonths ?? ""}
+                  defaultEndDate={values.endDate ?? ""}
+                />
+              ) : (
+                section.fields.map((f) => (
+                  <FormRow
+                    key={f.name}
+                    label={f.label}
+                    htmlFor={f.name}
+                    className={f.full ? "sm:col-span-2" : undefined}
+                  >
+                    {f.type === "textarea" ? (
+                      <Textarea
+                        id={f.name}
+                        name={f.name}
+                        defaultValue={values[f.name] ?? ""}
+                      />
+                    ) : (
+                      <Input
+                        id={f.name}
+                        name={f.name}
+                        type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
+                        defaultValue={values[f.name] ?? ""}
+                      />
+                    )}
+                  </FormRow>
+                ))
+              )}
             </div>
           </section>
         ))}

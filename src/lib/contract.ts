@@ -68,8 +68,12 @@ const rentTermSection: Section = {
   title: "ระยะเวลาของสัญญา (Lease Term)",
   fields: [
     { name: "startDate", label: "วันเริ่มสัญญา / Start date", type: "date" },
-    { name: "endDate", label: "วันสิ้นสุดสัญญา / End date", type: "date" },
     { name: "durationMonths", label: "ระยะเวลา (เดือน) / Duration (months)", type: "number" },
+    {
+      name: "endDate",
+      label: "วันสิ้นสุดสัญญา / End date (คำนวณอัตโนมัติ แก้ไขเองได้)",
+      type: "date",
+    },
   ],
 };
 
