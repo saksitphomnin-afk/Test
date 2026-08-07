@@ -260,10 +260,17 @@ function leaseBlocks(d: ContractData): Block[] {
           T`ชำระภายในวันที่ ${or(d.paymentDueDay)} ของทุกเดือน โดยโอนเข้าบัญชี`,
           T`to be paid by the ${or(d.paymentDueDay)} of each month via bank transfer to the following account:`,
         ),
-        item(T`ธนาคาร: ${or(d.bankName)}`, T`Bank: ${or(d.bankName)}`, { mode: "nested" }),
+        // เว้นวรรคหลัง label ให้ค่า (ชื่อธนาคาร/ชื่อบัญชี/เลขบัญชี) เริ่มที่ตำแหน่งเดียวกัน
+        // ทุกบรรทัด (เทียบเท่าจัดคอลัมน์ตาราง) — คำนวณจากการวัดตำแหน่งจริงในไฟล์ที่เรนเดอร์แล้ว
+        // (ระยะห่างต่อช่องว่างไม่เท่ากับความกว้างตัวอักษร เพราะฟอนต์เป็นสัดส่วน ไม่ใช่ monospace)
         item(
-          T`ชื่อบัญชี: ${or(d.bankAccountName)}`,
-          T`Account Name: ${or(d.bankAccountName)}`,
+          T`ธนาคาร:    ${or(d.bankName)}`,
+          T`Bank:               ${or(d.bankName)}`,
+          { mode: "nested" },
+        ),
+        item(
+          T`ชื่อบัญชี:    ${or(d.bankAccountName)}`,
+          T`Account Name:    ${or(d.bankAccountName)}`,
           { mode: "nested" },
         ),
         item(
