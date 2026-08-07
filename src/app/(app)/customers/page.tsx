@@ -189,6 +189,15 @@ export default async function CustomersPage() {
                           >
                             ทำสัญญา
                           </LinkButton>
+                          {latestRoomIdByCustomerId.has(c.id) && (
+                            <LinkButton
+                              href={`/customers/${c.id}/match`}
+                              variant="secondary"
+                              size="sm"
+                            >
+                              เปลี่ยนห้อง/โครงการ
+                            </LinkButton>
+                          )}
                           <LinkButton
                             href={`/customers/${c.id}/edit`}
                             variant="secondary"

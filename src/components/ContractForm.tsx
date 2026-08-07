@@ -176,6 +176,9 @@ export function ContractForm({
   const [savedIds, setSavedIds] =
     useState<Partial<Record<ContractType, string>>>(savedContractIds);
   const [pdfLang, setPdfLang] = useState<PdfLang>("BOTH");
+  // มีการแก้ไขในฟอร์มที่ยังไม่ได้กด "บันทึกสัญญา" หรือไม่ — เตือนก่อนดาวน์โหลด PDF/ใบเสร็จ เพราะปุ่ม
+  // ดาวน์โหลดดึงข้อมูลจากฐานข้อมูล (ค่าที่บันทึกล่าสุด) ไม่ใช่ค่าที่กำลังพิมพ์อยู่ในฟอร์ม
+  const [dirty, setDirty] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   const customerMap = useMemo(
@@ -191,6 +194,7 @@ export function ContractForm({
   useEffect(() => {
     if (state.contractId) {
       setSavedIds((prev) => ({ ...prev, [type]: state.contractId }));
+      setDirty(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.contractId]);
@@ -233,7 +237,10 @@ export function ContractForm({
           <button
             key={t}
             type="button"
-            onClick={() => setType(t)}
+            onClick={() => {
+              setType(t);
+              setDirty(false);
+            }}
             className={cn(
               "rounded-lg px-4 py-2 text-sm font-medium transition",
               type === t
@@ -246,7 +253,13 @@ export function ContractForm({
         ))}
       </div>
 
-      <form key={type} ref={formRef} action={formAction} className="space-y-6">
+      <form
+        key={type}
+        ref={formRef}
+        action={formAction}
+        onChange={() => setDirty(true)}
+        className="space-y-6"
+      >
         <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-base font-semibold text-gray-900">
             ลูกค้า (Enquiry)
@@ -395,7 +408,12 @@ export function ContractForm({
           )}
           <SubmitButton />
         </div>
-        {currentId && (
+        {currentId && dirty && (
+          <p className="text-right text-xs font-medium text-amber-600">
+            มีการแก้ไขที่ยังไม่บันทึก — บันทึกก่อนเพื่อให้ไฟล์ที่ดาวน์โหลดตรงกับข้อมูลล่าสุด
+          </p>
+        )}
+        {currentId && !dirty && (
           <p className="text-right text-xs text-gray-400">
             บันทึกสัญญาแล้ว — กดดาวน์โหลด PDF ได้เลย (แก้ไขแล้วอย่าลืมกดบันทึกอีกครั้ง)
           </p>

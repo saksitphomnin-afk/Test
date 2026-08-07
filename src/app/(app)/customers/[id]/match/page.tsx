@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth-helpers";
 import { Input } from "@/components/ui/Field";
 import { LinkButton, buttonClasses } from "@/components/ui/Button";
-import { STATUS_META, LISTING_META, formatBaht } from "@/lib/constants";
+import { MoveContractButton } from "@/components/MoveContractButton";
+import { STATUS_META, LISTING_META, CONTRACT_META, formatBaht } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,14 @@ export default async function MatchRoomPage({
   if (customer.createdById !== user.id && user.role !== "ADMIN") {
     redirect("/customers");
   }
+
+  // สัญญาล่าสุดของลูกค้ารายนี้ (ถ้ามี) — เอาไว้โชว์แบนเนอร์บอกว่าแมทกับห้องไหนอยู่ และเปลี่ยนปุ่ม
+  // "เลือกห้องนี้" เป็น "ย้ายมาห้องนี้" แทน เพื่อแก้กรณีเซลกดเลือกห้อง/โครงการผิดตอนแมทสัญญา
+  const latestContract = await prisma.contract.findFirst({
+    where: { customerId: id },
+    orderBy: { updatedAt: "desc" },
+    include: { room: { select: { projectName: true, roomNumber: true } } },
+  });
 
   const { q: rawQ } = await searchParams;
   const q = rawQ?.trim();
@@ -74,6 +83,16 @@ export default async function MatchRoomPage({
           {customer.phone}) — เลือกห้องที่ลูกค้าคนนี้สนใจ ระบบจะพาไปกรอกรายละเอียดสัญญาต่อ
         </p>
       </div>
+
+      {latestContract && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          ตอนนี้แมทกับห้อง{" "}
+          <span className="font-medium">
+            {latestContract.room.projectName} {latestContract.room.roomNumber}
+          </span>{" "}
+          อยู่ (สัญญา{CONTRACT_META[latestContract.type].label}) — เลือกห้องด้านล่างเพื่อย้ายไปห้องอื่น
+        </div>
+      )}
 
       <form className="flex gap-2">
         <Input
@@ -155,12 +174,20 @@ export default async function MatchRoomPage({
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <LinkButton
-                        href={`/rooms/${room.id}/contract?customerId=${customer.id}`}
-                        size="sm"
-                      >
-                        เลือกห้องนี้
-                      </LinkButton>
+                      {latestContract && latestContract.roomId !== room.id ? (
+                        <MoveContractButton
+                          contractId={latestContract.id}
+                          newRoomId={room.id}
+                          contractHref={`/rooms/${room.id}/contract?customerId=${customer.id}`}
+                        />
+                      ) : (
+                        <LinkButton
+                          href={`/rooms/${room.id}/contract?customerId=${customer.id}`}
+                          size="sm"
+                        >
+                          เลือกห้องนี้
+                        </LinkButton>
+                      )}
                     </td>
                   </tr>
                 );
