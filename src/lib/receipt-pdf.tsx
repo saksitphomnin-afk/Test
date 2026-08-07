@@ -6,8 +6,10 @@ import {
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
-import { thaiDate, bahtNumber, bahtText } from "@/lib/lease-clauses";
+import { thaiDate, engDate, bahtNumber, bahtText } from "@/lib/lease-clauses";
 import { BiText } from "@/lib/pdf-fonts";
+
+const BORDER = "#111827";
 
 const styles = StyleSheet.create({
   page: {
@@ -27,46 +29,83 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: "center",
     color: "#6b7280",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   metaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 16,
     fontSize: 10.5,
     color: "#4b5563",
   },
-  box: {
+  infoBlock: { marginBottom: 16 },
+  infoLine: { marginBottom: 4 },
+  tableWrap: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 4,
-    padding: 16,
-    marginBottom: 24,
+    borderColor: BORDER,
+    marginBottom: 16,
   },
-  row: { flexDirection: "row", marginBottom: 10 },
-  label: { width: "35%", color: "#6b7280" },
-  value: { width: "65%", fontWeight: "bold" },
-  amountBox: {
-    borderTopWidth: 1,
-    borderTopColor: "#d1d5db",
-    marginTop: 8,
-    paddingTop: 12,
+  tableRow: { flexDirection: "row" },
+  tableRowBorderTop: { borderTopWidth: 1, borderTopColor: BORDER },
+  headerCell: {
+    backgroundColor: "#f3f4f6",
+    fontWeight: "bold",
+    padding: 6,
+    textAlign: "center",
   },
-  amountValue: { fontSize: 16, fontWeight: "bold", color: "#1d4ed8" },
-  amountWords: { fontSize: 10.5, color: "#6b7280", marginTop: 2 },
-  signatures: {
+  cellNo: {
+    width: "10%",
+    borderRightWidth: 1,
+    borderRightColor: BORDER,
+    padding: 6,
+    textAlign: "center",
+  },
+  cellDesc: {
+    width: "60%",
+    borderRightWidth: 1,
+    borderRightColor: BORDER,
+    padding: 6,
+  },
+  cellAmount: {
+    width: "30%",
+    padding: 6,
+    textAlign: "right",
+  },
+  totalLabelCell: {
+    width: "70%",
+    borderRightWidth: 1,
+    borderRightColor: BORDER,
+    padding: 6,
+    fontWeight: "bold",
+  },
+  totalAmountCell: {
+    width: "30%",
+    padding: 6,
+    textAlign: "right",
+    fontWeight: "bold",
+    color: "#1d4ed8",
+  },
+  totalWordsRow: { paddingHorizontal: 6, paddingBottom: 6 },
+  totalWords: { fontSize: 10.5, color: "#6b7280" },
+  paymentLine: { fontSize: 10.5, marginBottom: 24, color: "#374151" },
+  signTopRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 64,
+    justifyContent: "space-between",
+    marginTop: 40,
   },
+  signBottomWrap: { alignItems: "center", marginTop: 40 },
   signBox: { width: "45%", alignItems: "center" },
   signLine: {
     borderTopWidth: 1,
-    borderTopColor: "#111827",
+    borderTopColor: BORDER,
     width: "100%",
     marginBottom: 4,
     paddingTop: 4,
+    textAlign: "center",
   },
+  signRole: { fontSize: 10.5, color: "#6b7280", textAlign: "center" },
+  notes: { marginTop: 32, fontSize: 10, color: "#6b7280" },
+  noteLine: { marginBottom: 2 },
   footer: {
     position: "absolute",
     bottom: 24,
@@ -81,52 +120,124 @@ const styles = StyleSheet.create({
 export interface ReceiptInput {
   receiptNo: string;
   payerName: string;
+  payerAddress: string;
+  ownerName: string;
+  salesRepName: string;
   roomLabel: string;
   bookingAmount: number;
+  depositAmount: number;
 }
 
-function ReceiptDocument({ receiptNo, payerName, roomLabel, bookingAmount }: ReceiptInput) {
-  const today = thaiDate(new Date().toISOString());
-  const amountText = `${bahtNumber(String(bookingAmount))} บาท`;
-  const amountWords = bahtText(String(bookingAmount));
+function addDays(iso: string, days: number): string {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function ReceiptDocument({
+  receiptNo,
+  payerName,
+  payerAddress,
+  ownerName,
+  salesRepName,
+  roomLabel,
+  bookingAmount,
+  depositAmount,
+}: ReceiptInput) {
+  const issueDate = new Date().toISOString().slice(0, 10);
+  const holdUntilDate = addDays(issueDate, 30);
+  const total = bookingAmount + depositAmount;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>ใบเสร็จรับเงิน (เงินจอง)</Text>
-        <Text style={styles.subtitle}>Booking Payment Receipt</Text>
+        <Text style={styles.title}>ใบรับเงินมัดจำ</Text>
+        <Text style={styles.subtitle}>DEPOSIT RECEIPT</Text>
 
         <View style={styles.metaRow}>
-          <BiText>เลขที่ใบเสร็จ: {receiptNo}</BiText>
-          <Text>วันที่: {today}</Text>
+          <BiText>{`เลขที่ / No: ${receiptNo}`}</BiText>
+          <BiText>{`วันที่ / Date: ${thaiDate(issueDate)} (${engDate(issueDate)})`}</BiText>
         </View>
 
-        <View style={styles.box}>
-          <View style={styles.row}>
-            <Text style={styles.label}>ผู้จ่ายเงิน / ชื่อลูกค้า</Text>
-            <BiText style={styles.value}>{payerName}</BiText>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>ห้อง</Text>
-            <BiText style={styles.value}>{roomLabel}</BiText>
+        <View style={styles.infoBlock}>
+          <BiText style={styles.infoLine}>
+            {`ได้รับเงินจาก / Received from: ${payerName}`}
+          </BiText>
+          <BiText style={styles.infoLine}>
+            {`ที่อยู่ / Address: ${payerAddress || "-"}`}
+          </BiText>
+          <BiText style={styles.infoLine}>{`ห้อง / Unit: ${roomLabel}`}</BiText>
+        </View>
+
+        <View style={styles.tableWrap}>
+          <View style={styles.tableRow}>
+            <Text style={[styles.cellNo, styles.headerCell]}>ลำดับ / No</Text>
+            <Text style={[styles.cellDesc, styles.headerCell]}>
+              รายการ / Description
+            </Text>
+            <Text style={[styles.cellAmount, styles.headerCell]}>
+              จำนวนเงิน (บาท) / Amount
+            </Text>
           </View>
 
-          <View style={styles.amountBox}>
-            <View style={styles.row}>
-              <Text style={styles.label}>จำนวนเงิน</Text>
-              <BiText style={styles.amountValue}>{amountText}</BiText>
+          <View style={[styles.tableRow, styles.tableRowBorderTop]}>
+            <Text style={styles.cellNo}>1</Text>
+            <BiText style={styles.cellDesc}>
+              {`เงินจอง คุ้มครองสิทธิ์ถึงวันที่ ${thaiDate(holdUntilDate)} / Advance Booking (valid ${engDate(issueDate)} - ${engDate(holdUntilDate)})`}
+            </BiText>
+            <Text style={styles.cellAmount}>{bahtNumber(String(bookingAmount))}</Text>
+          </View>
+
+          <View style={[styles.tableRow, styles.tableRowBorderTop]}>
+            <Text style={styles.cellNo}>2</Text>
+            <BiText style={styles.cellDesc}>เงินประกันสัญญา / Security Deposit</BiText>
+            <Text style={styles.cellAmount}>{bahtNumber(String(depositAmount))}</Text>
+          </View>
+
+          <View style={[styles.tableRow, styles.tableRowBorderTop]}>
+            <Text style={styles.totalLabelCell}>รวมเป็นเงินทั้งสิ้น / Grand Total</Text>
+            <Text style={styles.totalAmountCell}>{bahtNumber(String(total))}</Text>
+          </View>
+          {bahtText(String(total)) && (
+            <View style={styles.totalWordsRow}>
+              <Text style={styles.totalWords}>({bahtText(String(total))})</Text>
             </View>
-            {amountWords && (
-              <Text style={styles.amountWords}>({amountWords})</Text>
-            )}
+          )}
+        </View>
+
+        <Text style={styles.paymentLine}>
+          ชำระโดย / Payment method: [ ] เงินสด / Cash    [ ] โอนเงิน / Bank Transfer
+          ................ ธนาคาร / Bank ................
+        </Text>
+
+        <View style={styles.signTopRow}>
+          <View style={styles.signBox}>
+            <BiText style={styles.signLine}>{`(${payerName})`}</BiText>
+            <Text style={styles.signRole}>ผู้ชำระเงิน / Payer</Text>
+          </View>
+          <View style={styles.signBox}>
+            <BiText style={styles.signLine}>{`(${ownerName})`}</BiText>
+            <Text style={styles.signRole}>ผู้รับเงิน / Payee</Text>
           </View>
         </View>
 
-        <View style={styles.signatures}>
+        <View style={styles.signBottomWrap}>
           <View style={styles.signBox}>
-            <View style={styles.signLine} />
-            <Text>(ผู้รับเงิน)</Text>
+            <BiText style={styles.signLine}>{`(${salesRepName})`}</BiText>
+            <Text style={styles.signRole}>ผู้ดูแลการขาย / Sales Representative</Text>
           </View>
+        </View>
+
+        <View style={styles.notes}>
+          <Text style={styles.noteLine}>
+            1. หากยกเลิกการจองภายหลัง เงินจองและเงินประกันจะไม่ได้รับคืน
+          </Text>
+          <Text style={styles.noteLine}>
+            2. เอกสารฉบับนี้เป็นเพียงหลักฐานการรับเงิน ไม่ใช่สัญญาเช่าหรือสัญญาซื้อขาย
+          </Text>
+          <Text style={styles.noteLine}>
+            3. เอกสารนี้มีผลสมบูรณ์เมื่อได้รับชำระเงินจริงเรียบร้อยแล้วเท่านั้น
+          </Text>
         </View>
 
         <Text style={styles.footer} fixed>
