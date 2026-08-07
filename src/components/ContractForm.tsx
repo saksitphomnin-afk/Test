@@ -119,22 +119,21 @@ function LeaseTermFields({
 function MoneyInput({
   id,
   name,
-  defaultValue,
+  value,
+  onChange,
 }: {
   id: string;
   name: string;
-  defaultValue: number | null | undefined;
+  value: string;
+  onChange: (value: string) => void;
 }) {
-  const [value, setValue] = useState(
-    defaultValue != null ? withCommas(String(defaultValue)) : "",
-  );
   return (
     <Input
       id={id}
       name={name}
       inputMode="numeric"
       value={value}
-      onChange={(e) => setValue(withCommas(e.target.value))}
+      onChange={(e) => onChange(withCommas(e.target.value))}
       placeholder="เช่น 20,000"
     />
   );
@@ -217,6 +216,24 @@ export function ContractForm({
     ...(savedData[type] ?? {}),
   };
 
+  // ค่าเช่า/เงินจอง/เงินประกัน ผูกกันตาม flow การชำระเงินจริงของทีม (จองห้อง = จ่าย 1 เดือน เรียกว่า
+  // เงินล่วงหน้า, ก่อนย้ายเข้า/เซ็นสัญญา = ชำระเงินประกัน 2 เดือน) — แก้ค่าเช่าแล้วเสนอเงินจอง/เงินประกัน
+  // ให้อัตโนมัติ (เฉพาะสัญญาเช่า) แต่ยังแก้ไขเองทับได้เหมือนวันสิ้นสุดสัญญาที่คำนวณจากวันเริ่ม+ระยะเวลา
+  const [monthlyRent, setMonthlyRent] = useState(values.monthlyRent ?? "");
+  const [depositAmount, setDepositAmount] = useState(values.depositAmount ?? "");
+  const [bookingAmount, setBookingAmount] = useState(
+    booking?.bookingAmount != null ? withCommas(String(booking.bookingAmount)) : "",
+  );
+
+  function handleMonthlyRentChange(next: string) {
+    setMonthlyRent(next);
+    const n = Number(next);
+    if (next && Number.isFinite(n) && n > 0) {
+      setBookingAmount(withCommas(String(Math.round(n))));
+      setDepositAmount(String(Math.round(n * 2)));
+    }
+  }
+
   function handleCustomerChange(customerId: string) {
     const customer = customerMap.get(customerId);
     if (!customer || !formRef.current) return;
@@ -240,6 +257,15 @@ export function ContractForm({
             onClick={() => {
               setType(t);
               setDirty(false);
+              const nextValues = { ...prefill[t], ...(savedData[t] ?? {}) };
+              setMonthlyRent(nextValues.monthlyRent ?? "");
+              setDepositAmount(nextValues.depositAmount ?? "");
+              const nextBooking = savedBooking[t];
+              setBookingAmount(
+                nextBooking?.bookingAmount != null
+                  ? withCommas(String(nextBooking.bookingAmount))
+                  : "",
+              );
             }}
             className={cn(
               "rounded-lg px-4 py-2 text-sm font-medium transition",
@@ -298,11 +324,19 @@ export function ContractForm({
                 จ่ายเงินจองแล้ว
               </label>
             </FormRow>
-            <FormRow label="จำนวนเงินจอง (บาท)" htmlFor="bookingAmount">
+            <FormRow
+              label={
+                type === "RENT"
+                  ? "จำนวนเงินจอง (บาท) (เสนอเท่าค่าเช่า 1 เดือนอัตโนมัติ แก้ไขเองได้)"
+                  : "จำนวนเงินจอง (บาท)"
+              }
+              htmlFor="bookingAmount"
+            >
               <MoneyInput
                 id="bookingAmount"
                 name="bookingAmount"
-                defaultValue={booking?.bookingAmount}
+                value={bookingAmount}
+                onChange={setBookingAmount}
               />
             </FormRow>
             <FormRow
@@ -342,29 +376,59 @@ export function ContractForm({
                   defaultEndDate={values.endDate ?? ""}
                 />
               ) : (
-                section.fields.map((f) => (
-                  <FormRow
-                    key={f.name}
-                    label={f.label}
-                    htmlFor={f.name}
-                    className={f.full ? "sm:col-span-2" : undefined}
-                  >
-                    {f.type === "textarea" ? (
-                      <Textarea
-                        id={f.name}
-                        name={f.name}
-                        defaultValue={values[f.name] ?? ""}
-                      />
-                    ) : (
-                      <Input
-                        id={f.name}
-                        name={f.name}
-                        type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
-                        defaultValue={values[f.name] ?? ""}
-                      />
-                    )}
-                  </FormRow>
-                ))
+                section.fields.map((f) => {
+                  // ค่าเช่า/เงินประกัน (เฉพาะสัญญาเช่า) ผูกกับ handleMonthlyRentChange ด้านบน
+                  // เพื่อเสนอเงินจอง/เงินประกันอัตโนมัติตาม flow การชำระเงินจริง
+                  if (type === "RENT" && f.name === "monthlyRent") {
+                    return (
+                      <FormRow key={f.name} label={f.label} htmlFor={f.name}>
+                        <Input
+                          id={f.name}
+                          name={f.name}
+                          type="number"
+                          value={monthlyRent}
+                          onChange={(e) => handleMonthlyRentChange(e.target.value)}
+                        />
+                      </FormRow>
+                    );
+                  }
+                  if (type === "RENT" && f.name === "depositAmount") {
+                    return (
+                      <FormRow key={f.name} label={f.label} htmlFor={f.name}>
+                        <Input
+                          id={f.name}
+                          name={f.name}
+                          type="number"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                        />
+                      </FormRow>
+                    );
+                  }
+                  return (
+                    <FormRow
+                      key={f.name}
+                      label={f.label}
+                      htmlFor={f.name}
+                      className={f.full ? "sm:col-span-2" : undefined}
+                    >
+                      {f.type === "textarea" ? (
+                        <Textarea
+                          id={f.name}
+                          name={f.name}
+                          defaultValue={values[f.name] ?? ""}
+                        />
+                      ) : (
+                        <Input
+                          id={f.name}
+                          name={f.name}
+                          type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
+                          defaultValue={values[f.name] ?? ""}
+                        />
+                      )}
+                    </FormRow>
+                  );
+                })
               )}
             </div>
           </section>

@@ -86,7 +86,11 @@ const rentPaymentSection: Section = {
       label: "ชำระค่าเช่าทุกวันที่ / Payment due day",
       type: "number",
     },
-    { name: "depositAmount", label: "เงินประกันสัญญา (บาท) / Security deposit (Baht)", type: "number" },
+    {
+      name: "depositAmount",
+      label: "เงินประกันสัญญา (บาท) / Security deposit (Baht) (เสนอ 2 เท่าค่าเช่าอัตโนมัติ แก้ไขเองได้)",
+      type: "number",
+    },
     { name: "bankName", label: "ชื่อธนาคาร / Bank" },
     { name: "bankBranch", label: "สาขา / Branch" },
     { name: "bankAccountNumber", label: "เลขบัญชี / Account Number" },
