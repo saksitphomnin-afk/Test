@@ -1,34 +1,59 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
-import { useFormStatus } from "react-dom";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { uploadFurniturePhotos } from "@/actions/furniture";
+import { compressImage } from "@/lib/image-compress";
 import { FURNITURE_CATEGORIES } from "@/lib/furniture";
 import { FormRow, Select } from "@/components/ui/Field";
 import { buttonClasses } from "@/components/ui/Button";
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" disabled={pending} className={buttonClasses("primary", "md")}>
-      {pending ? "กำลังอัปโหลด..." : "อัปโหลดรูป"}
-    </button>
-  );
-}
-
 export function FurnitureUploadForm({ contractId }: { contractId: string }) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction] = useActionState(
-    uploadFurniturePhotos.bind(null, contractId),
-    {},
-  );
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!state.error) formRef.current?.reset();
-  }, [state]);
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const category = String(new FormData(form).get("category") ?? "");
+    const isDefect = new FormData(form).get("isDefect") === "on";
+    const fileInput = form.elements.namedItem("images") as HTMLInputElement;
+    const files = Array.from(fileInput.files ?? []);
+    if (files.length === 0) return;
+
+    setError(null);
+    setProgress({ done: 0, total: files.length });
+
+    // อัปโหลดทีละรูป (บีบอัดก่อนส่งทุกรูป) แทนการยัดทุกไฟล์ไปใน request เดียว — request ใหญ่เกินไป
+    // จะโดนลิมิตขนาด body ของแพลตฟอร์ม deploy (เช่น Vercel) ซึ่งปรับจากฝั่งแอปไม่ได้
+    let failed = 0;
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const compressed = await compressImage(files[i]);
+        const fd = new FormData();
+        fd.set("category", category);
+        fd.set("isDefect", isDefect ? "on" : "off");
+        fd.append("images", compressed);
+        const result = await uploadFurniturePhotos(contractId, {}, fd);
+        if (result.error) failed++;
+      } catch {
+        failed++;
+      }
+      setProgress({ done: i + 1, total: files.length });
+    }
+
+    if (failed > 0) {
+      setError(`อัปโหลดไม่สำเร็จ ${failed} จาก ${files.length} รูป ลองใหม่อีกครั้งสำหรับรูปที่พลาด`);
+    }
+    setProgress(null);
+    formRef.current?.reset();
+    router.refresh();
+  }
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <FormRow label="หมวด" htmlFor="category">
           <Select id="category" name="category" required>
@@ -59,10 +84,21 @@ export function FurnitureUploadForm({ contractId }: { contractId: string }) {
         />
         เป็นภาพ Defect ของหมวดนี้
       </label>
-      {state.error && (
-        <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{state.error}</p>
+      {error && (
+        <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
       )}
-      <SubmitButton />
+      {progress && (
+        <p className="text-sm text-gray-500">
+          กำลังอัปโหลด {progress.done}/{progress.total} รูป...
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={progress !== null}
+        className={buttonClasses("primary", "md")}
+      >
+        {progress ? `กำลังอัปโหลด... (${progress.done}/${progress.total})` : "อัปโหลดรูป"}
+      </button>
     </form>
   );
 }
