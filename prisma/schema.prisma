@@ -42,7 +42,8 @@ enum CustomerStatus {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  name         String
+  name         String // ชื่อเล่น/ชื่อบัญชี ใช้แสดงภายในทีมเท่านั้น
+  fullName     String? // ชื่อ-นามสกุลจริง แอดมินตั้งให้ — ใช้แสดงบนเอกสารที่ส่งออกนอกทีม (เช่น ใบเสร็จ)
   passwordHash String
   role         Role     @default(MEMBER)
   createdAt    DateTime @default(now())

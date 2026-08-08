@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import {
   resetPassword,
   setCustomerPrefix,
+  setFullName,
   deleteUser,
   type UserFormState,
 } from "@/actions/users";
@@ -14,6 +15,7 @@ import { formatDateTime } from "@/lib/constants";
 type UserItem = {
   id: string;
   name: string;
+  fullName: string | null;
   email: string;
   role: string;
   customerPrefix: string | null;
@@ -28,6 +30,10 @@ export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
   );
   const [prefixState, prefixAction] = useActionState<UserFormState, FormData>(
     setCustomerPrefix.bind(null, user.id),
+    {},
+  );
+  const [fullNameState, fullNameAction] = useActionState<UserFormState, FormData>(
+    setFullName.bind(null, user.id),
     {},
   );
 
@@ -46,6 +52,11 @@ export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
             {user.role === "ADMIN" ? "ผู้ดูแลระบบ" : "ทีมงาน"} ·{" "}
             {formatDateTime(user.createdAt)}
           </p>
+          {!user.fullName && (
+            <p className="mt-0.5 text-xs text-amber-600">
+              ยังไม่ได้ตั้งชื่อ-นามสกุลจริง — เอกสารที่ออกจะใช้ชื่อบัญชี ({user.name}) แทน
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <button
@@ -69,6 +80,29 @@ export function UserRow({ user, isSelf }: { user: UserItem; isSelf: boolean }) {
           )}
         </div>
       </div>
+
+      <form
+        action={fullNameAction}
+        className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3"
+      >
+        <label className="text-sm text-gray-600">ชื่อ-นามสกุลจริง:</label>
+        <input
+          name="fullName"
+          defaultValue={user.fullName ?? ""}
+          placeholder="เช่น สมชาย ใจดี"
+          className="w-48 rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+        />
+        <button type="submit" className={buttonClasses("secondary", "sm")}>
+          บันทึกชื่อ-นามสกุล
+        </button>
+        <span className="text-xs text-gray-400">ใช้แสดงบนเอกสารที่ออกให้ลูกค้า/เจ้าของ</span>
+        {fullNameState.error && (
+          <p className="w-full text-sm text-rose-700">{fullNameState.error}</p>
+        )}
+        {fullNameState.ok && (
+          <p className="w-full text-sm text-green-700">บันทึกชื่อ-นามสกุลแล้ว</p>
+        )}
+      </form>
 
       <form
         action={prefixAction}

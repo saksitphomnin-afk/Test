@@ -75,6 +75,18 @@ export async function setCustomerPrefix(
   return { ok: true };
 }
 
+export async function setFullName(
+  id: string,
+  _prev: UserFormState,
+  formData: FormData,
+): Promise<UserFormState> {
+  await requireAdmin();
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  await prisma.user.update({ where: { id }, data: { fullName: fullName || null } });
+  revalidatePath("/admin/users");
+  return { ok: true };
+}
+
 export async function deleteUser(id: string) {
   const admin = await requireAdmin();
   if (admin.id === id) redirect("/admin/users?err=self");

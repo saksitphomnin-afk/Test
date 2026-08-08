@@ -18,7 +18,11 @@ export async function GET(
   const { id } = await params;
   const contract = await prisma.contract.findUnique({
     where: { id },
-    include: { room: true, customer: true, createdBy: { select: { name: true } } },
+    include: {
+      room: true,
+      customer: true,
+      createdBy: { select: { name: true, fullName: true } },
+    },
   });
   if (!contract) {
     return new Response("Not found", { status: 404 });
@@ -40,7 +44,8 @@ export async function GET(
     contract.customer?.name || data.tenantName || data.lesseeName || "-";
   const payerAddress = data.tenantAddress || data.lesseeAddress || "";
   const ownerName = data.lessorName || contract.room.ownerName || "-";
-  const salesRepName = contract.createdBy.name;
+  // ใช้ชื่อ-นามสกุลจริงถ้าแอดมินตั้งไว้แล้ว ไม่งั้น fallback เป็นชื่อบัญชี (มักเป็นชื่อเล่น)
+  const salesRepName = contract.createdBy.fullName || contract.createdBy.name;
   const roomLabel = `${contract.room.projectName} ${contract.room.roomNumber}`;
   // เงินประกันสัญญาเก็บเป็น string มีคอมมา (กรอกผ่าน MoneyInput ในฟอร์มสัญญา) ต้องลอกคอมมาออกก่อน
   const depositAmount = Number(String(data.depositAmount ?? "").replace(/,/g, "")) || 0;
