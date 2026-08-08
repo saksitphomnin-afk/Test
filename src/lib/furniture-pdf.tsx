@@ -26,10 +26,10 @@ const styles = StyleSheet.create({
     top: 32,
     left: 48,
     right: 48,
-    textAlign: "center",
   },
-  title: { fontSize: 16, fontWeight: "bold" },
-  subtitle: { fontSize: 12, color: "#4b5563", marginTop: 2 },
+  // textAlign ต้องตั้งที่ตัว Text เอง react-pdf ไม่ไล่ inherit จาก View แม่เหมือน CSS ปกติ
+  title: { fontSize: 16, fontWeight: "bold", textAlign: "center" },
+  subtitle: { fontSize: 12, color: "#4b5563", marginTop: 2, textAlign: "center" },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 10 },
   subTitle: {
