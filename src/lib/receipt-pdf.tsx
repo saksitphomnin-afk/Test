@@ -151,8 +151,8 @@ function ReceiptDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>ใบรับเงินมัดจำ</Text>
-        <Text style={styles.subtitle}>DEPOSIT RECEIPT</Text>
+        <Text style={styles.title}>ใบเสร็จรับเงิน</Text>
+        <Text style={styles.subtitle}>RECEIPT</Text>
 
         <View style={styles.metaRow}>
           <BiText>{`เลขที่ / No: ${receiptNo}`}</BiText>
