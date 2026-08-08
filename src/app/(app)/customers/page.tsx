@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-helpers";
 import { LinkButton } from "@/components/ui/Button";
 import { DeleteCustomerButton } from "@/components/DeleteCustomerButton";
 import { DocumentMenu } from "@/components/DocumentMenu";
+import { KebabMenu, KebabMenuLink } from "@/components/KebabMenu";
 import { CUSTOMER_STATUS_META } from "@/lib/customers";
 import { formatDateTime } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -42,12 +43,8 @@ export default async function CustomersPage() {
         })
       : [];
   const contractByCustomerId = new Map<string, (typeof allContracts)[number]>();
-  const latestRoomIdByCustomerId = new Map<string, string>();
   for (const c of allContracts) {
     if (!c.customerId) continue;
-    if (!latestRoomIdByCustomerId.has(c.customerId)) {
-      latestRoomIdByCustomerId.set(c.customerId, c.roomId);
-    }
     if (!contractByCustomerId.has(c.customerId)) {
       contractByCustomerId.set(c.customerId, c);
     }
@@ -83,53 +80,24 @@ export default async function CustomersPage() {
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full min-w-[980px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="px-4 py-3">รหัส</th>
-                <th className="px-4 py-3">ชื่อ</th>
-                <th className="px-4 py-3">เบอร์</th>
-                <th className="px-4 py-3 text-right">งบ (บาท)</th>
-                <th className="px-4 py-3">สถานะ</th>
-                <th className="px-4 py-3">Remark</th>
-                <th className="px-4 py-3">ห้อง / ใบเสร็จ</th>
-                {isAdmin && <th className="px-4 py-3">ผู้ดูแล</th>}
-                <th className="px-4 py-3 text-right">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((c) => {
-                const meta = CUSTOMER_STATUS_META[c.status];
-                const canManage = isAdmin || c.createdById === user.id;
-                return (
-                  <tr
-                    key={c.id}
-                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
-                  >
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-500">
-                      {c.code ?? "-"}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {c.name}
-                      {c.lineId && (
-                        <span className="block text-xs font-normal text-gray-400">
-                          LINE: {c.lineId}
-                        </span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <a
-                        href={`tel:${c.phone}`}
-                        className="text-brand-600 hover:underline"
-                      >
-                        {c.phone}
-                      </a>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-700">
-                      {c.budget != null ? c.budget.toLocaleString("en-US") : "-"}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
+        <>
+          {/* มือถือ/แท็บเล็ตแคบ: การ์ดเรียงต่อกัน อ่าน/ปัดง่ายกว่าตารางที่ต้องเลื่อนซ้าย-ขวา */}
+          <div className="space-y-3 sm:hidden">
+            {customers.map((c) => {
+              const meta = CUSTOMER_STATUS_META[c.status];
+              const canManage = isAdmin || c.createdById === user.id;
+              const matched = contractByCustomerId.get(c.id);
+              return (
+                <div
+                  key={c.id}
+                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-gray-900">{c.name}</p>
+                      <p className="font-mono text-xs text-gray-400">{c.code ?? "-"}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
                       <span
                         className={cn(
                           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
@@ -139,17 +107,127 @@ export default async function CustomersPage() {
                         <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
                         {meta.label}
                       </span>
-                    </td>
-                    <td className="max-w-[240px] px-4 py-3 text-gray-500">
-                      <span className="block truncate" title={c.note ?? ""}>
-                        {c.note || "-"}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-600">
-                      {(() => {
-                        const matched = contractByCustomerId.get(c.id);
-                        if (!matched) return <span className="text-gray-300">-</span>;
-                        return (
+                      {canManage && (
+                        <KebabMenu>
+                          {matched && (
+                            <KebabMenuLink href={`/customers/${c.id}/match`}>
+                              เปลี่ยนห้อง/โครงการ
+                            </KebabMenuLink>
+                          )}
+                          <KebabMenuLink href={`/customers/${c.id}/edit`}>แก้ไข</KebabMenuLink>
+                          <DeleteCustomerButton id={c.id} asMenuItem />
+                        </KebabMenu>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                    <a href={`tel:${c.phone}`} className="text-brand-600 hover:underline">
+                      📞 {c.phone}
+                    </a>
+                    <span className="text-right text-gray-700 tabular-nums">
+                      {c.budget != null ? `฿${c.budget.toLocaleString("en-US")}` : "-"}
+                    </span>
+                  </div>
+
+                  {c.note && (
+                    <p className="mt-1.5 truncate text-xs text-gray-500" title={c.note}>
+                      📝 {c.note}
+                    </p>
+                  )}
+
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-3">
+                    {matched ? (
+                      <DocumentMenu
+                        roomLabel={`ห้อง ${matched.room.projectName} ${matched.room.roomNumber}`}
+                        contractHref={`/rooms/${matched.roomId}/contract?customerId=${c.id}`}
+                        receiptHref={
+                          matched.bookingPaid && matched.slipUrl
+                            ? `/api/contract/${matched.id}/receipt`
+                            : undefined
+                        }
+                        furnitureHref={`/customers/${c.id}/furniture`}
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-300">ยังไม่แมทห้อง</span>
+                    )}
+                    {canManage && !matched && (
+                      <LinkButton href={`/customers/${c.id}/match`} size="sm">
+                        ทำสัญญา
+                      </LinkButton>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* จอกว้าง: ตารางแบบเดิม แต่ยุบปุ่มรองลงในเมนู ⋮ ให้แถวโล่งขึ้น */}
+          <div className="hidden overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm sm:block">
+            <table className="w-full min-w-[900px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <th className="px-4 py-3">รหัส</th>
+                  <th className="px-4 py-3">ชื่อ</th>
+                  <th className="px-4 py-3">เบอร์</th>
+                  <th className="px-4 py-3 text-right">งบ (บาท)</th>
+                  <th className="px-4 py-3">สถานะ</th>
+                  <th className="px-4 py-3">Remark</th>
+                  <th className="px-4 py-3">ห้อง / เอกสาร</th>
+                  {isAdmin && <th className="px-4 py-3">ผู้ดูแล</th>}
+                  <th className="px-4 py-3 text-right">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((c) => {
+                  const meta = CUSTOMER_STATUS_META[c.status];
+                  const canManage = isAdmin || c.createdById === user.id;
+                  const matched = contractByCustomerId.get(c.id);
+                  return (
+                    <tr
+                      key={c.id}
+                      className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
+                    >
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-500">
+                        {c.code ?? "-"}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        {c.name}
+                        {c.lineId && (
+                          <span className="block text-xs font-normal text-gray-400">
+                            LINE: {c.lineId}
+                          </span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <a
+                          href={`tel:${c.phone}`}
+                          className="text-brand-600 hover:underline"
+                        >
+                          {c.phone}
+                        </a>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-700">
+                        {c.budget != null ? c.budget.toLocaleString("en-US") : "-"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+                            meta.badge,
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td className="max-w-[240px] px-4 py-3 text-gray-500">
+                        <span className="block truncate" title={c.note ?? ""}>
+                          {c.note || "-"}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                        {matched ? (
                           <DocumentMenu
                             roomLabel={`ห้อง ${matched.room.projectName} ${matched.room.roomNumber}`}
                             contractHref={`/rooms/${matched.roomId}/contract?customerId=${c.id}`}
@@ -160,59 +238,53 @@ export default async function CustomersPage() {
                             }
                             furnitureHref={`/customers/${c.id}/furniture`}
                           />
-                        );
-                      })()}
-                    </td>
-                    {isAdmin && (
-                      <td className="whitespace-nowrap px-4 py-3 text-gray-600">
-                        {c.createdBy.name}
-                        <span className="block text-xs text-gray-400">
-                          {formatDateTime(c.createdAt)}
-                        </span>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
                       </td>
-                    )}
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      {canManage ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <LinkButton
-                            href={
-                              latestRoomIdByCustomerId.has(c.id)
-                                ? `/rooms/${latestRoomIdByCustomerId.get(c.id)}/contract?customerId=${c.id}`
-                                : `/customers/${c.id}/match`
-                            }
-                            variant="secondary"
-                            size="sm"
-                          >
-                            ทำสัญญา
-                          </LinkButton>
-                          {latestRoomIdByCustomerId.has(c.id) && (
-                            <LinkButton
-                              href={`/customers/${c.id}/match`}
-                              variant="secondary"
-                              size="sm"
-                            >
-                              เปลี่ยนห้อง/โครงการ
-                            </LinkButton>
-                          )}
-                          <LinkButton
-                            href={`/customers/${c.id}/edit`}
-                            variant="secondary"
-                            size="sm"
-                          >
-                            แก้ไข
-                          </LinkButton>
-                          <DeleteCustomerButton id={c.id} />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-300">—</span>
+                      {isAdmin && (
+                        <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                          {c.createdBy.name}
+                          <span className="block text-xs text-gray-400">
+                            {formatDateTime(c.createdAt)}
+                          </span>
+                        </td>
                       )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        {canManage ? (
+                          <div className="flex items-center justify-end gap-1">
+                            {!matched && (
+                              <LinkButton
+                                href={`/customers/${c.id}/match`}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                ทำสัญญา
+                              </LinkButton>
+                            )}
+                            <KebabMenu>
+                              {matched && (
+                                <KebabMenuLink href={`/customers/${c.id}/match`}>
+                                  เปลี่ยนห้อง/โครงการ
+                                </KebabMenuLink>
+                              )}
+                              <KebabMenuLink href={`/customers/${c.id}/edit`}>
+                                แก้ไข
+                              </KebabMenuLink>
+                              <DeleteCustomerButton id={c.id} asMenuItem />
+                            </KebabMenu>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
