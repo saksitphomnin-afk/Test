@@ -63,7 +63,7 @@ export default function LoginPage() {
           <div className="space-y-1 px-6 pb-2 pt-8 text-center">
             <div className="flex justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png?v=2" alt="Place co." className="h-16 w-auto" />
+              <img src="/logo.svg?v=3" alt="Havenz Property" className="h-16 w-auto" />
             </div>
             <h2 className="text-2xl font-semibold text-gray-900">เข้าสู่ระบบ</h2>
             <p className="text-sm text-gray-500">

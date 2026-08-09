@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 290" width="940" height="290">
+  <g id="icon" transform="translate(20,20)">
+    <rect x="0" y="0" width="190" height="200" rx="10" fill="none" stroke="#C9A227" stroke-width="7"/>
+    <g>
+      <rect x="24" y="22" width="65" height="52" fill="#6B5417"/>
+      <rect x="101" y="22" width="65" height="52" fill="#C9A227"/>
+      <rect x="24" y="86" width="65" height="52" fill="#8A6F1F"/>
+      <rect x="101" y="86" width="65" height="52" fill="#C6B27A"/>
+      <rect x="24" y="150" width="65" height="52" fill="#C6B27A"/>
+      <rect x="101" y="150" width="65" height="52" fill="#6B5417"/>
+    </g>
+  </g>
+  <text x="240" y="140" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="118" fill="#141414" letter-spacing="1">HAVENZ</text>
+  <text x="242" y="182" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="34" fill="#B8952F" letter-spacing="7">PROPERTY</text>
+  <text x="20" y="272" font-family="Arial, Helvetica, sans-serif" font-weight="500" font-size="26" fill="#6b7280" letter-spacing="4">FIND YOUR PLACE.</text>
+</svg>

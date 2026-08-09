@@ -241,7 +241,7 @@ function ReceiptDocument({
         </View>
 
         <Text style={styles.footer} fixed>
-          เอกสารนี้จัดทำจากระบบ Place co. — ใบเสร็จรับเงินมัดจำ/เงินจองเท่านั้น
+          เอกสารนี้จัดทำจากระบบ Havenz Property — ใบเสร็จรับเงินมัดจำ/เงินจองเท่านั้น
         </Text>
       </Page>
     </Document>

@@ -140,7 +140,7 @@ function FurnitureDocument({
         </View>
 
         <Text style={styles.footer} fixed>
-          เอกสารนี้จัดทำจากระบบ Place co. — เฟอร์นิเจอร์ลิสต์ประกอบสัญญาเท่านั้น
+          เอกสารนี้จัดทำจากระบบ Havenz Property — เฟอร์นิเจอร์ลิสต์ประกอบสัญญาเท่านั้น
         </Text>
       </Page>
     </Document>
