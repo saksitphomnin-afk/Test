@@ -493,11 +493,11 @@ function SignBox({
     <View style={styles.signBox}>
       {showEn && en && <SignLine label="Signed" role={`"${en}"`} />}
       {showEn && en && nameEn && (
-        <Text style={styles.signName}>{`(${nameEn})`}</Text>
+        <Text style={styles.signName}>{nameEn}</Text>
       )}
       {showTh && <SignLine label="ลงชื่อ" role={th} />}
       {showTh && nameTh && (
-        <BiText style={styles.signName}>{`(${nameTh})`}</BiText>
+        <BiText style={styles.signName}>{nameTh}</BiText>
       )}
     </View>
   );
@@ -599,6 +599,9 @@ function ClauseBlockInterleaved({ block }: { block: Block }) {
 function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang }) {
   const showTh = lang === "TH" || lang === "BOTH";
   const showEn = lang === "EN" || lang === "BOTH";
+  // ช่องลงชื่อ: ใช้ภาษาเดียวเสมอ ไม่ใช่ show ทั้งคู่แบบเนื้อหาสัญญา — BOTH/EN ใช้อังกฤษ, TH ใช้ไทย
+  const signShowEn = lang === "EN" || lang === "BOTH";
+  const signShowTh = lang === "TH";
   const blocks = leaseBlocks(data);
 
   return (
@@ -662,7 +665,8 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
           );
         })}
 
-        {/* ลายเซ็น — เว้นบรรทัดไว้เซ็นมือ */}
+        {/* ลายเซ็น — เว้นบรรทัดไว้เซ็นมือ ใช้ภาษาเดียว (ไม่ซ้อนไทย+อังกฤษเหมือนเนื้อหาสัญญา):
+            โหมด BOTH/EN ใช้อังกฤษ, โหมด TH เท่านั้นถึงใช้ไทย */}
         <View style={styles.signWrap} wrap={false}>
           <View style={styles.signRow}>
             <SignBox
@@ -670,10 +674,10 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
               th="ผู้ให้เช่า"
               nameEn={data.lessorNameEn || data.lessorName}
               nameTh={data.lessorName}
-              showEn={showEn}
-              showTh={showTh}
+              showEn={signShowEn}
+              showTh={signShowTh}
             />
-            <SignBox en="Witness" th="พยาน" showEn={showEn} showTh={showTh} />
+            <SignBox en="Witness" th="พยาน" showEn={signShowEn} showTh={signShowTh} />
           </View>
           <View style={styles.signRow}>
             <SignBox
@@ -681,10 +685,10 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
               th="ผู้เช่า"
               nameEn={data.tenantNameEn || data.tenantName}
               nameTh={data.tenantName}
-              showEn={showEn}
-              showTh={showTh}
+              showEn={signShowEn}
+              showTh={signShowTh}
             />
-            <SignBox en="Witness" th="พยาน" showEn={showEn} showTh={showTh} />
+            <SignBox en="Witness" th="พยาน" showEn={signShowEn} showTh={signShowTh} />
           </View>
         </View>
 
