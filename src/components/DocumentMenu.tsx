@@ -19,7 +19,10 @@ export function DocumentMenu({
     const value = e.target.value;
     e.target.value = "";
     if (value === "receipt" && receiptHref) {
-      window.open(receiptHref, "_blank", "noopener,noreferrer");
+      // ใช้ same-tab navigation แทน window.open — เบราว์เซอร์จะดาวน์โหลดไฟล์ตาม
+      // Content-Disposition: attachment โดยไม่ออกจากหน้าเดิม ส่วน window.open ที่ยิงจาก
+      // change event ของ <select> เจอปัญหา popup ถูกบล็อกไม่แน่นอนบน Safari (iPad/iPhone)
+      window.location.href = receiptHref;
     } else if (value === "contract") {
       router.push(contractHref);
     } else if (value === "furniture") {

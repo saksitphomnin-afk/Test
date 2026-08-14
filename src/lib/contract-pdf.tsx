@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     marginBottom: 3,
   },
+  signName: { textAlign: "center", fontSize: 13, marginTop: -3, marginBottom: 6 },
   footerWrap: {
     position: "absolute",
     bottom: 24,
@@ -476,18 +477,28 @@ function SignLine({ label, role }: { label: string; role: string }) {
 function SignBox({
   en,
   th,
+  nameEn,
+  nameTh,
   showEn,
   showTh,
 }: {
   en?: string;
   th: string;
+  nameEn?: string;
+  nameTh?: string;
   showEn: boolean;
   showTh: boolean;
 }) {
   return (
     <View style={styles.signBox}>
       {showEn && en && <SignLine label="Signed" role={`"${en}"`} />}
+      {showEn && en && nameEn && (
+        <Text style={styles.signName}>{`(${nameEn})`}</Text>
+      )}
       {showTh && <SignLine label="ลงชื่อ" role={th} />}
+      {showTh && nameTh && (
+        <BiText style={styles.signName}>{`(${nameTh})`}</BiText>
+      )}
     </View>
   );
 }
@@ -654,11 +665,25 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
         {/* ลายเซ็น — เว้นบรรทัดไว้เซ็นมือ */}
         <View style={styles.signWrap} wrap={false}>
           <View style={styles.signRow}>
-            <SignBox en="Lessor" th="ผู้ให้เช่า" showEn={showEn} showTh={showTh} />
+            <SignBox
+              en="Lessor"
+              th="ผู้ให้เช่า"
+              nameEn={data.lessorNameEn || data.lessorName}
+              nameTh={data.lessorName}
+              showEn={showEn}
+              showTh={showTh}
+            />
             <SignBox en="Witness" th="พยาน" showEn={showEn} showTh={showTh} />
           </View>
           <View style={styles.signRow}>
-            <SignBox en="Lessee" th="ผู้เช่า" showEn={showEn} showTh={showTh} />
+            <SignBox
+              en="Lessee"
+              th="ผู้เช่า"
+              nameEn={data.tenantNameEn || data.tenantName}
+              nameTh={data.tenantName}
+              showEn={showEn}
+              showTh={showTh}
+            />
             <SignBox en="Witness" th="พยาน" showEn={showEn} showTh={showTh} />
           </View>
         </View>
@@ -721,8 +746,8 @@ function GenericContractDocument({
         })}
 
         <View style={styles.signRow}>
-          <SignBox th={partyALabel} showEn={false} showTh />
-          <SignBox th={partyBLabel} showEn={false} showTh />
+          <SignBox th={partyALabel} nameTh={data.lessorName} showEn={false} showTh />
+          <SignBox th={partyBLabel} nameTh={data.lesseeName} showEn={false} showTh />
         </View>
 
         <View style={styles.footerWrap} fixed>
