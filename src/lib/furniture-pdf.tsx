@@ -47,7 +47,12 @@ const styles = StyleSheet.create({
   cell: { width: "31%", marginBottom: 16 },
   photo: { width: "100%", height: 130, objectFit: "cover", borderRadius: 4 },
   caption: { fontSize: 10.5, textAlign: "center", marginTop: 4 },
-  signWrap: { marginTop: 40, alignItems: "center" },
+  signWrap: {
+    marginTop: 40,
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  signBox: { alignItems: "center" },
   signLine: {
     borderTopWidth: 1,
     borderTopColor: "#111827",
@@ -79,6 +84,7 @@ export interface FurniturePdfInput {
   roomNumber: string;
   floor?: string | null;
   ownerName: string;
+  customerName: string;
   items: FurnitureItemInput[];
 }
 
@@ -102,12 +108,14 @@ function FurnitureDocument({
   roomNumber,
   floor,
   ownerName,
+  customerName,
   categorized,
 }: {
   projectName: string;
   roomNumber: string;
   floor?: string | null;
   ownerName: string;
+  customerName: string;
   categorized: { category: FurnitureCategory; normal: ResolvedItem[]; defect: ResolvedItem[] }[];
 }) {
   return (
@@ -133,10 +141,17 @@ function FurnitureDocument({
           </View>
         ))}
 
-        <View style={styles.signWrap}>
-          <View style={styles.signLine} />
-          <Text style={styles.signLabel}>ลงชื่อเจ้าของทรัพย์สิน / Owner Signature</Text>
-          <BiText style={styles.signLabel}>{ownerName}</BiText>
+        <View style={styles.signWrap} wrap={false}>
+          <View style={styles.signBox}>
+            <View style={styles.signLine} />
+            <Text style={styles.signLabel}>ลงชื่อเจ้าของทรัพย์สิน / Owner Signature</Text>
+            <BiText style={styles.signLabel}>{ownerName}</BiText>
+          </View>
+          <View style={styles.signBox}>
+            <View style={styles.signLine} />
+            <Text style={styles.signLabel}>ลงชื่อผู้เช่า/ผู้ซื้อ / Tenant Signature</Text>
+            <BiText style={styles.signLabel}>{customerName}</BiText>
+          </View>
         </View>
 
         <Text style={styles.footer} fixed>
@@ -173,6 +188,7 @@ export async function renderFurniturePdf(input: FurniturePdfInput): Promise<Buff
       roomNumber={input.roomNumber}
       floor={input.floor}
       ownerName={input.ownerName}
+      customerName={input.customerName}
       categorized={categorized}
     />,
   );

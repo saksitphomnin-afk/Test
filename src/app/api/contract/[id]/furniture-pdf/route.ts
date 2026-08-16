@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { renderFurniturePdf } from "@/lib/furniture-pdf";
+import type { ContractData } from "@/lib/contract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export async function GET(
     where: { id },
     include: {
       room: { select: { projectName: true, roomNumber: true, floor: true, ownerName: true } },
+      customer: { select: { name: true } },
       furnitureItems: { orderBy: { sortOrder: "asc" } },
     },
   });
@@ -29,11 +31,18 @@ export async function GET(
     return new Response("ยังไม่มีรูปเฟอร์นิเจอร์", { status: 400 });
   }
 
+  // ชื่อลูกค้า: เอาจากลูกค้าที่แมทไว้ก่อน ถ้าไม่มีค่อย fallback ไปชื่อผู้เช่า/ผู้ซื้อที่กรอกในสัญญา
+  // (pattern เดียวกับที่ route ใบเสร็จใช้)
+  const data = contract.data as ContractData;
+  const customerName =
+    contract.customer?.name || data.tenantName || data.lesseeName || "-";
+
   const buffer = await renderFurniturePdf({
     projectName: contract.room.projectName,
     roomNumber: contract.room.roomNumber,
     floor: contract.room.floor,
     ownerName: contract.room.ownerName,
+    customerName,
     items: contract.furnitureItems.map((it) => ({
       category: it.category,
       isDefect: it.isDefect,
