@@ -54,6 +54,8 @@ export function SearchFilter({
       if (val) sp.set(key, val);
       else sp.delete(key);
     }
+    // เปลี่ยนตัวกรองแล้วกลับไปหน้า 1 เสมอ — เลขหน้าเดิมอาจไม่มีอยู่แล้วในผลลัพธ์ใหม่
+    sp.delete("page");
     startTransition(() => router.push(`/?${sp.toString()}`));
   }
 

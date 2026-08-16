@@ -3,6 +3,7 @@ import type { Prisma, RoomStatus, ListingType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { RoomCard } from "@/components/RoomCard";
 import { SearchFilter } from "@/components/SearchFilter";
+import { Pagination } from "@/components/Pagination";
 import { LinkButton } from "@/components/ui/Button";
 import {
   STATUS_ORDER,
@@ -29,9 +30,11 @@ export default async function Dashboard({
     saleprice?: string;
     listing?: string;
     station?: string;
+    page?: string;
   }>;
 }) {
   const sp = await searchParams;
+  const PAGE_SIZE = 20;
   const q = sp.q?.trim();
   const status = sp.status as RoomStatus | undefined;
   // ไม่ trim ค่าโครงการ — ต้องเทียบให้ตรงกับค่าที่เก็บใน DB เป๊ะ (เผื่อข้อมูลเก่า
@@ -107,6 +110,15 @@ export default async function Dashboard({
     rooms.sort((a, b) => distOf(a) - distOf(b));
   }
 
+  // แบ่งหน้าละ 20 ห้อง — เรียง/กรองทั้งหมดในตัวแปร rooms ไว้ก่อนแล้ว ที่นี่แค่ตัดมาโชว์เฉพาะหน้า
+  // ปัจจุบัน (คง sort ตามระยะสถานีข้างบนไว้ได้ เพราะ slice เกิดหลัง sort เสมอ)
+  const totalPages = Math.max(1, Math.ceil(rooms.length / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, Number(sp.page) || 1), totalPages);
+  const pageRooms = rooms.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
   // ตัวเลือกประเภทห้องในตัวกรอง = ประเภทมาตรฐาน (มี Duplex/Loft) + ประเภทที่พิมพ์เองใน DB
   // เสมอ เพื่อให้ Duplex/Loft โผล่แม้ยังไม่มีห้องไหนใช้ค่านั้น
   const roomTypes = [
@@ -146,11 +158,18 @@ export default async function Dashboard({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} highlightStation={station} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {pageRooms.map((room) => (
+              <RoomCard key={room.id} room={room} highlightStation={station} />
+            ))}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            searchParams={sp}
+          />
+        </>
       )}
     </div>
   );
