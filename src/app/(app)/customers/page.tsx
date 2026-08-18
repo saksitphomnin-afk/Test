@@ -33,6 +33,7 @@ export default async function CustomersPage() {
           orderBy: { updatedAt: "desc" },
           select: {
             id: true,
+            type: true,
             customerId: true,
             roomId: true,
             bookingPaid: true,
@@ -146,6 +147,11 @@ export default async function CustomersPage() {
                             ? `/api/contract/${matched.id}/receipt`
                             : undefined
                         }
+                        brokerHref={
+                          matched.type === "RENT"
+                            ? `/api/contract/${matched.id}/broker-pdf`
+                            : undefined
+                        }
                         furnitureHref={`/customers/${c.id}/furniture`}
                       />
                     ) : (
@@ -234,6 +240,11 @@ export default async function CustomersPage() {
                             receiptHref={
                               matched.bookingPaid && matched.slipUrl
                                 ? `/api/contract/${matched.id}/receipt`
+                                : undefined
+                            }
+                            brokerHref={
+                              matched.type === "RENT"
+                                ? `/api/contract/${matched.id}/broker-pdf`
                                 : undefined
                             }
                             furnitureHref={`/customers/${c.id}/furniture`}

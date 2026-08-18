@@ -7,11 +7,13 @@ export function DocumentMenu({
   contractHref,
   receiptHref,
   furnitureHref,
+  brokerHref,
 }: {
   roomLabel: string;
   contractHref: string;
   receiptHref?: string;
   furnitureHref: string;
+  brokerHref?: string;
 }) {
   const router = useRouter();
 
@@ -23,6 +25,8 @@ export function DocumentMenu({
       // Content-Disposition: attachment โดยไม่ออกจากหน้าเดิม ส่วน window.open ที่ยิงจาก
       // change event ของ <select> เจอปัญหา popup ถูกบล็อกไม่แน่นอนบน Safari (iPad/iPhone)
       window.location.href = receiptHref;
+    } else if (value === "broker" && brokerHref) {
+      window.location.href = brokerHref;
     } else if (value === "contract") {
       router.push(contractHref);
     } else if (value === "furniture") {
@@ -44,6 +48,7 @@ export function DocumentMenu({
         </option>
         <option value="contract">📄 ดูสัญญา</option>
         {receiptHref && <option value="receipt">🧾 ดาวน์โหลดใบเสร็จ</option>}
+        {brokerHref && <option value="broker">🤝 สัญญานายหน้า</option>}
         <option value="furniture">🛋️ เฟอร์นิเจอร์</option>
       </select>
     </div>

@@ -32,18 +32,9 @@ export default async function ContractPage({
     select: { id: true, code: true, name: true, phone: true },
   });
 
-  // ชื่อเซล/ผู้ดูแลปัจจุบัน สำหรับ prefill ช่องลงชื่อในสัญญาแต่งตั้งนายหน้า (session.user ไม่มี
-  // fullName ต้องดึงจาก DB เพิ่ม — เอาชื่อ-นามสกุลจริงถ้ามี ไม่งั้น fallback เป็นชื่อบัญชี)
-  const me = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { name: true, fullName: true },
-  });
-  const salesRepName = me?.fullName || me?.name || "";
-
   const prefill = {
     RENT: prefillFromRoom("RENT", room),
     SALE: prefillFromRoom("SALE", room),
-    BROKER: { ...prefillFromRoom("BROKER", room), salesRepName },
   };
 
   const savedData: Partial<Record<ContractType, ContractData>> = {};
@@ -80,7 +71,7 @@ export default async function ContractPage({
           ← กลับไปหน้าห้อง
         </Link>
         <h1 className="mt-1 text-xl font-semibold text-gray-900">
-          ออกสัญญา (เช่า / ซื้อขาย / แต่งตั้งนายหน้า)
+          ออกสัญญา (เช่า / ซื้อขาย)
         </h1>
         <p className="text-sm text-gray-500">
           {room.projectName} · ห้อง {room.roomNumber} — กรอกข้อมูลแล้วดาวน์โหลดเป็น PDF
