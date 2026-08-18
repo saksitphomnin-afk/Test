@@ -87,6 +87,27 @@ const styles = StyleSheet.create({
   label: { width: "35%", color: "#6b7280" },
   // ตัวหนา + ขีดเส้นใต้ — เน้นค่าที่ทีมกรอกก่อนออกสัญญาให้ต่างจากป้ายชื่อฟิลด์
   value: { width: "65%", fontWeight: "bold", textDecoration: "underline" },
+  // ตาราง 3 คอลัมน์ (สัญญาแต่งตั้งนายหน้า — อัตราค่าตอบแทนตามอายุสัญญา)
+  brokerTableWrap: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    marginBottom: 16,
+  },
+  brokerTableRow: { flexDirection: "row" },
+  brokerCell: {
+    width: "33.33%",
+    padding: 6,
+    textAlign: "center",
+    borderRightWidth: 1,
+    borderRightColor: "#d1d5db",
+  },
+  brokerCellLast: {
+    width: "33.33%",
+    padding: 6,
+    textAlign: "center",
+  },
+  brokerHeaderCell: { backgroundColor: "#f3f4f6", fontWeight: "bold" },
+  brokerRowBorderTop: { borderTopWidth: 1, borderTopColor: "#d1d5db" },
 });
 
 // ==================== เงินตรา + คำอ่านไทย ====================
@@ -764,6 +785,110 @@ function GenericContractDocument({
   );
 }
 
+// ==================== สัญญาแต่งตั้งตัวแทนนายหน้า (ภาษาไทยล้วน — เซล/เจ้าของทรัพย์สิน 2 ฝ่าย) ====================
+
+const BROKER_TERM_TABLE = [
+  { term: "สัญญา 1 ปี", rate: "เท่ากับค่าเช่า 1 เดือน" },
+  { term: "สัญญา 2 ปี", rate: "เท่ากับค่าเช่า 1.5 เดือน" },
+  { term: "สัญญา 3 ปี", rate: "เท่ากับค่าเช่า 2 เดือน" },
+];
+
+const BROKER_CLAUSES = [
+  "ค่าตัวแทนจะชำระเต็มจำนวนทันทีในวันที่ลงนามสัญญาเช่า และมีการรับเงินมัดจำครบถ้วนแล้ว ถือว่างานของสมบูรณ์ในวันนั้นแล้ว และไม่มีการคืนเงินไม่ว่ากรณีใด แม้แต่ผู้เช่าผิดสัญญาหรือย้ายออกก่อนกำหนด",
+  "กรณีต่ออายุสัญญา: ปีที่ 2 ถึงปีที่ 4 คิดอัตราปีละ 0.5 เท่าของค่าเช่า 1 เดือน เป็นต้นไป",
+  "กรณีผู้เช่าผิดเงื่อนไขการจอง และยกเลิกก่อนลงนามสัญญาเช่า โดยเงินมัดจำตกเป็นของเจ้าของทรัพย์สิน เจ้าของทรัพย์สินตกลงแบ่งเงินจำนวน 30% ของเงินดังกล่าวให้ทาง Havenz Property",
+  "หากเจ้าของทรัพย์สินยกเลิกการดำเนินการเอง ปฏิเสธการทำสัญญาโดยไม่ใช่ความผิดของลูกค้า หรือทำสัญญาเช่าโดยตรงกับทางผู้เช่าที่ Havenz Property เป็นผู้แนะนำให้ ทางเจ้าของทรัพย์ยินดีตกลงชำระค่าตอบแทนตัวแทนนายหน้าให้เต็มจำนวนตามอัตราที่ระบุไว้ในข้อ 1",
+];
+
+function BrokerContractDocument({ data }: { data: ContractData }) {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.title}>สัญญาแต่งตั้งตัวแทนนายหน้าอสังหาริมทรัพย์</Text>
+
+        <BiText style={styles.para}>
+          {`วันที่ ${data.contractDate ? thaiDate(data.contractDate) : "-"}    เรียน ${data.ownerName || "-"} (เจ้าของทรัพย์สิน)`}
+        </BiText>
+
+        <BiText style={[styles.para, { marginBottom: 14 }]}>
+          Havenz Property ขอขอบคุณที่ท่านมอบความไว้วางใจแต่งตั้งให้เป็นผู้ดำเนินการด้านการตลาด
+          ประชาสัมพันธ์ และจัดหาผู้เช่าให้แก่ทรัพย์สินของท่านตามรายละเอียด และเงื่อนไขดังด้านล่างนี้
+        </BiText>
+
+        <View style={styles.section} wrap={false}>
+          <View style={styles.row}>
+            <BiText style={styles.label}>ประเภททรัพย์</BiText>
+            <BiText style={styles.value}>{data.propertyType || "-"}</BiText>
+          </View>
+          <View style={styles.row}>
+            <BiText style={styles.label}>โครงการ / เลขที่ห้อง / ชั้น</BiText>
+            <BiText style={styles.value}>
+              {`${data.propertyProject || "-"} / ${data.propertyRoom || "-"} / ${data.propertyFloor || "-"}`}
+            </BiText>
+          </View>
+          <View style={styles.row}>
+            <BiText style={styles.label}>อัตราค่าเช่าต่อเดือน</BiText>
+            <BiText style={styles.value}>
+              {data.monthlyRent ? `${bahtNumber(data.monthlyRent)} บาท` : "-"}
+            </BiText>
+          </View>
+          <View style={styles.row}>
+            <BiText style={styles.label}>ชื่อผู้เช่า</BiText>
+            <BiText style={styles.value}>{data.tenantName || "-"}</BiText>
+          </View>
+        </View>
+
+        <BiText style={styles.sectionTitle}>
+          อัตราค่าตอบแทนนายหน้า (สัญญาฉบับแรก)
+        </BiText>
+        <View style={styles.brokerTableWrap} wrap={false}>
+          <View style={styles.brokerTableRow}>
+            {BROKER_TERM_TABLE.map((row, i) => (
+              <BiText
+                key={row.term}
+                style={[
+                  i < 2 ? styles.brokerCell : styles.brokerCellLast,
+                  styles.brokerHeaderCell,
+                ]}
+              >
+                {row.term}
+              </BiText>
+            ))}
+          </View>
+          <View style={[styles.brokerTableRow, styles.brokerRowBorderTop]}>
+            {BROKER_TERM_TABLE.map((row, i) => (
+              <BiText key={row.term} style={i < 2 ? styles.brokerCell : styles.brokerCellLast}>
+                {row.rate}
+              </BiText>
+            ))}
+          </View>
+        </View>
+
+        <BiText style={styles.sectionTitle}>เงื่อนไข และข้อตกลง</BiText>
+        {BROKER_CLAUSES.map((text, i) => (
+          <BiText key={i} style={styles.para}>
+            {`${i + 1}) ${text}`}
+          </BiText>
+        ))}
+        <BiText style={[styles.para, { marginTop: 8 }]}>
+          เจ้าของทรัพย์สินรับทราบ และยินยอมปฏิบัติตามเงื่อนไขทั้งหมดข้างต้น
+        </BiText>
+
+        <View style={styles.signRow}>
+          <SignBox th="เซล / Havenz Property" nameTh={data.salesRepName} showEn={false} showTh />
+          <SignBox th="เจ้าของทรัพย์สิน" nameTh={data.ownerName} showEn={false} showTh />
+        </View>
+
+        <View style={styles.footerWrap} fixed>
+          <BiText style={styles.footerText}>
+            เอกสารนี้จัดทำจากระบบ Havenz Property — กรุณาตรวจสอบความถูกต้องก่อนลงนาม
+          </BiText>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
 export async function renderContractPdf(
   type: ContractType,
   data: ContractData,
@@ -771,6 +896,9 @@ export async function renderContractPdf(
 ): Promise<Buffer> {
   if (type === "RENT") {
     return renderToBuffer(<LeaseContractDocument data={data} lang={lang} />);
+  }
+  if (type === "BROKER") {
+    return renderToBuffer(<BrokerContractDocument data={data} />);
   }
   return renderToBuffer(<GenericContractDocument type={type} data={data} />);
 }

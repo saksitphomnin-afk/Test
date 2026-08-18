@@ -30,6 +30,7 @@ enum ListingType {
 enum ContractType {
   RENT // สัญญาเช่า
   SALE // สัญญาซื้อขาย
+  BROKER // สัญญาแต่งตั้งตัวแทนนายหน้า
 }
 
 enum CustomerStatus {

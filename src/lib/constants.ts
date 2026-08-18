@@ -42,6 +42,7 @@ export const LISTING_META: Record<ListingType, { label: string }> = {
 export const CONTRACT_META: Record<ContractType, { label: string }> = {
   RENT: { label: "สัญญาเช่า" },
   SALE: { label: "สัญญาซื้อขาย" },
+  BROKER: { label: "สัญญาแต่งตั้งนายหน้า" },
 };
 
 /** ตัวเลือกประเภทห้องมาตรฐาน (กันพิมพ์ชื่อไม่ตรงกัน) — "อื่นๆ" ให้ระบุเองได้ */

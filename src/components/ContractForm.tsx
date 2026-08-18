@@ -249,8 +249,8 @@ export function ContractForm({
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1">
-        {(["RENT", "SALE"] as ContractType[]).map((t) => (
+      <div className="inline-flex flex-wrap rounded-xl border border-gray-200 bg-white p-1">
+        {(["RENT", "SALE", "BROKER"] as ContractType[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -286,79 +286,84 @@ export function ContractForm({
         onChange={() => setDirty(true)}
         className="space-y-6"
       >
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">
-            ลูกค้า (Enquiry)
-          </h2>
-          <FormRow label="เลือกลูกค้า" htmlFor="customerId">
-            <Select
-              id="customerId"
-              name="customerId"
-              defaultValue={booking?.customerId ?? initialCustomerId ?? ""}
-              onChange={(e) => handleCustomerChange(e.target.value)}
-            >
-              <option value="">— เลือกลูกค้า —</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.code ?? ""} {c.name} ({c.phone})
-                </option>
-              ))}
-            </Select>
-          </FormRow>
-        </section>
+        {/* สัญญาแต่งตั้งนายหน้าไม่มีลูกค้า/เงินจองผูกด้วย — มีแค่เซลกับเจ้าของห้อง 2 ฝ่าย */}
+        {type !== "BROKER" && (
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-gray-900">
+              ลูกค้า (Enquiry)
+            </h2>
+            <FormRow label="เลือกลูกค้า" htmlFor="customerId">
+              <Select
+                id="customerId"
+                name="customerId"
+                defaultValue={booking?.customerId ?? initialCustomerId ?? ""}
+                onChange={(e) => handleCustomerChange(e.target.value)}
+              >
+                <option value="">— เลือกลูกค้า —</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.code ?? ""} {c.name} ({c.phone})
+                  </option>
+                ))}
+              </Select>
+            </FormRow>
+          </section>
+        )}
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">
-            การชำระเงินจอง
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormRow label="สถานะการจอง" htmlFor="bookingPaid">
-              <label className="flex h-11 items-center gap-2 text-sm text-gray-700">
-                <input
-                  id="bookingPaid"
-                  name="bookingPaid"
-                  type="checkbox"
-                  defaultChecked={booking?.bookingPaid ?? false}
-                  className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+        {type !== "BROKER" && (
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-gray-900">
+              การชำระเงินจอง
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormRow label="สถานะการจอง" htmlFor="bookingPaid">
+                <label className="flex h-11 items-center gap-2 text-sm text-gray-700">
+                  <input
+                    id="bookingPaid"
+                    name="bookingPaid"
+                    type="checkbox"
+                    defaultChecked={booking?.bookingPaid ?? false}
+                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  จ่ายเงินจองแล้ว
+                </label>
+              </FormRow>
+              <FormRow
+                label={
+                  type === "RENT"
+                    ? "จำนวนเงินจอง (บาท) (เสนอเท่าค่าเช่า 1 เดือนอัตโนมัติ แก้ไขเองได้)"
+                    : "จำนวนเงินจอง (บาท)"
+                }
+                htmlFor="bookingAmount"
+              >
+                <MoneyInput
+                  id="bookingAmount"
+                  name="bookingAmount"
+                  value={bookingAmount}
+                  onChange={setBookingAmount}
                 />
-                จ่ายเงินจองแล้ว
-              </label>
-            </FormRow>
-            <FormRow
-              label={
-                type === "RENT"
-                  ? "จำนวนเงินจอง (บาท) (เสนอเท่าค่าเช่า 1 เดือนอัตโนมัติ แก้ไขเองได้)"
-                  : "จำนวนเงินจอง (บาท)"
-              }
-              htmlFor="bookingAmount"
-            >
-              <MoneyInput
-                id="bookingAmount"
-                name="bookingAmount"
-                value={bookingAmount}
-                onChange={setBookingAmount}
-              />
-            </FormRow>
-            <FormRow
-              label="สลิปการโอนเงินจอง"
-              htmlFor="slip"
-              className="sm:col-span-2"
-            >
-              <input
-                id="slip"
-                name="slip"
-                type="file"
-                accept="image/*"
-                className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
-              />
-              {booking?.slipUrl && (
-                <p className="mt-1 text-xs text-gray-400">
-                  มีสลิปที่อัปโหลดแล้ว — เลือกไฟล์ใหม่เพื่อแทนที่
-                </p>
-              )}
-            </FormRow>
-          </div>
-        </section>
+              </FormRow>
+              <FormRow
+                label="สลิปการโอนเงินจอง"
+                htmlFor="slip"
+                className="sm:col-span-2"
+              >
+                <input
+                  id="slip"
+                  name="slip"
+                  type="file"
+                  accept="image/*"
+                  className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+                />
+                {booking?.slipUrl && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    มีสลิปที่อัปโหลดแล้ว — เลือกไฟล์ใหม่เพื่อแทนที่
+                  </p>
+                )}
+              </FormRow>
+            </div>
+          </section>
+        )}
 
         {contractSections(type).map((section) => (
           <section

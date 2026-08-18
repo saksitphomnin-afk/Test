@@ -123,6 +123,29 @@ const rentOther: Section = {
   ],
 };
 
+// ---------- BROKER (สัญญาแต่งตั้งตัวแทนนายหน้า — ภาษาไทยล้วน มีแค่เซล/เจ้าของ 2 ฝ่าย) ----------
+
+const brokerMeta: Section = {
+  title: "รายละเอียดสัญญา",
+  fields: [
+    { name: "contractDate", label: "วันที่", type: "date" },
+    { name: "ownerName", label: "เรียน (ชื่อ-นามสกุลเจ้าของทรัพย์สิน)" },
+    { name: "salesRepName", label: "ชื่อเซล/ผู้ดูแล (Havenz Property)" },
+  ],
+};
+
+const brokerProperty: Section = {
+  title: "รายละเอียดทรัพย์สิน",
+  fields: [
+    { name: "propertyType", label: "ประเภททรัพย์" },
+    { name: "propertyProject", label: "โครงการ" },
+    { name: "propertyRoom", label: "เลขที่ห้อง" },
+    { name: "propertyFloor", label: "ชั้น" },
+    { name: "monthlyRent", label: "อัตราค่าเช่าต่อเดือน (บาท)", type: "number" },
+    { name: "tenantName", label: "ชื่อผู้เช่า (ถ้ามี)" },
+  ],
+};
+
 // ---------- SALE (คงรูปแบบเดิม ไม่เปลี่ยนแปลง) ----------
 
 const partyA = (type: ContractType): Section => ({
@@ -186,6 +209,9 @@ export function contractSections(type: ContractType): Section[] {
       rentOther,
     ];
   }
+  if (type === "BROKER") {
+    return [brokerMeta, brokerProperty];
+  }
   return [
     saleMeta,
     partyA(type),
@@ -214,9 +240,22 @@ export function prefillFromRoom(
     ownerPhone: string;
     salePrice?: number | null;
     rentPrice?: number | null;
+    roomType?: string | null;
   },
 ): ContractData {
   const today = new Date().toISOString().slice(0, 10);
+
+  if (type === "BROKER") {
+    return {
+      contractDate: today,
+      ownerName: room.ownerName,
+      propertyType: room.roomType ?? "",
+      propertyProject: room.projectName,
+      propertyRoom: room.roomNumber,
+      propertyFloor: room.floor ?? "",
+      monthlyRent: room.rentPrice ? String(room.rentPrice) : "",
+    };
+  }
 
   if (type === "RENT") {
     return {
