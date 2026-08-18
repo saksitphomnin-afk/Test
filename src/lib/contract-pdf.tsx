@@ -129,6 +129,17 @@ const styles = StyleSheet.create({
     lineHeight: 1.25,
   },
   brokerPara: { marginBottom: 2, textAlign: "left" },
+  // ช่องลงชื่อแบบตัวอย่างที่ผู้ใช้ส่งมา — เส้นก่อน แล้วชื่อในวงเล็บใต้เส้น แล้วตำแหน่งใต้ชื่อ
+  // (ไม่มีคำว่า "ลงชื่อ" นำหน้าแบบ SignBox ที่ใช้ร่วมกับสัญญาเช่า-ซื้อขาย)
+  brokerSignBox: { width: "47%", alignItems: "center" },
+  brokerSignLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#111827",
+    width: "80%",
+    marginBottom: 4,
+  },
+  brokerSignName: { textAlign: "center", marginBottom: 2 },
+  brokerSignRole: { textAlign: "center", color: "#6b7280" },
 });
 
 // ==================== เงินตรา + คำอ่านไทย ====================
@@ -821,6 +832,16 @@ const BROKER_CLAUSES = [
   "หากเจ้าของทรัพย์สินยกเลิกการดำเนินการเอง ปฏิเสธการทำสัญญาโดยไม่ใช่ความผิดของลูกค้า หรือทำสัญญาเช่าโดยตรงกับทางผู้เช่าที่ Havenz Property เป็นผู้แนะนำให้ ทางเจ้าของทรัพย์ยินดีตกลงชำระค่าตอบแทนตัวแทนนายหน้าให้เต็มจำนวนตามอัตราที่ระบุไว้ในข้อ 1",
 ];
 
+function BrokerSignBox({ name, role }: { name?: string; role: string }) {
+  return (
+    <View style={styles.brokerSignBox}>
+      <View style={styles.brokerSignLine} />
+      <BiText style={styles.brokerSignName}>{`(${name || "-"})`}</BiText>
+      <BiText style={styles.brokerSignRole}>{role}</BiText>
+    </View>
+  );
+}
+
 function BrokerContractDocument({ data }: { data: ContractData }) {
   return (
     <Document>
@@ -908,8 +929,8 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
         </BiText>
 
         <View style={[styles.signRow, { marginTop: 8 }]}>
-          <SignBox th="นายหน้าอสังหาริมทรัพย์" nameTh={data.salesRepName} showEn={false} showTh />
-          <SignBox th="เจ้าของทรัพย์สิน" nameTh={data.ownerName} showEn={false} showTh />
+          <BrokerSignBox name={data.ownerName} role="เจ้าของทรัพย์สิน" />
+          <BrokerSignBox name={data.salesRepName} role="ที่ปรึกษาด้านอสังหาริมทรัพย์" />
         </View>
 
         <View style={styles.footerWrap} fixed>
