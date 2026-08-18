@@ -928,7 +928,7 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
           เจ้าของทรัพย์สินรับทราบ และยินยอมปฏิบัติตามเงื่อนไขทั้งหมดข้างต้น
         </BiText>
 
-        <View style={[styles.signRow, { marginTop: 8 }]}>
+        <View style={[styles.signRow, { marginTop: 40 }]}>
           <BrokerSignBox name={data.ownerName} role="เจ้าของทรัพย์สิน" />
           <BrokerSignBox name={data.salesRepName} role="ที่ปรึกษาด้านอสังหาริมทรัพย์" />
         </View>
