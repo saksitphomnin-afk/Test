@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   label: { width: "35%", color: "#6b7280" },
   // ตัวหนา + ขีดเส้นใต้ — เน้นค่าที่ทีมกรอกก่อนออกสัญญาให้ต่างจากป้ายชื่อฟิลด์
   value: { width: "65%", fontWeight: "bold", textDecoration: "underline" },
-  // ตาราง 3 คอลัมน์ (สัญญาแต่งตั้งนายหน้า — อัตราค่าตอบแทนตามอายุสัญญา)
+  // ตาราง 4 คอลัมน์ (สัญญาแต่งตั้งนายหน้า — อัตราค่าตอบแทนตามอายุสัญญา)
   brokerTableWrap: {
     borderWidth: 1,
     borderColor: "#d1d5db",
@@ -95,14 +95,14 @@ const styles = StyleSheet.create({
   },
   brokerTableRow: { flexDirection: "row" },
   brokerCell: {
-    width: "33.33%",
+    width: "25%",
     padding: 6,
     textAlign: "center",
     borderRightWidth: 1,
     borderRightColor: "#d1d5db",
   },
   brokerCellLast: {
-    width: "33.33%",
+    width: "25%",
     padding: 6,
     textAlign: "center",
   },
@@ -824,10 +824,21 @@ function GenericContractDocument({
 // ==================== สัญญาแต่งตั้งตัวแทนนายหน้า (ภาษาไทยล้วน — เซล/เจ้าของทรัพย์สิน 2 ฝ่าย) ====================
 
 const BROKER_TERM_TABLE = [
+  { term: "สัญญา 6 เดือน", rate: "เท่ากับค่าเช่า 0.5 เดือน" },
   { term: "สัญญา 1 ปี", rate: "เท่ากับค่าเช่า 1 เดือน" },
   { term: "สัญญา 2 ปี", rate: "เท่ากับค่าเช่า 1.5 เดือน" },
   { term: "สัญญา 3 ปี", rate: "เท่ากับค่าเช่า 2 เดือน" },
 ];
+
+// จำนวนเดือนค่าเช่าที่คิดเป็นค่าคอมมิชชั่น ตามระยะเวลาสัญญา (เดือน):
+// ต่ำกว่า 1 ปี (เช่น 6 เดือน) = 0.5 เดือน, ปีที่ 1 = 1 เดือน, ปีที่ 2 เป็นต้นไปเพิ่มปีละ 0.5 เดือน
+// (ตรงกับเงื่อนไขข้อ 2 ด้านล่าง "ปีที่ 2 ถึงปีที่ 4 คิดอัตราปีละ 0.5 เท่า... เป็นต้นไป")
+function brokerCommissionMonths(durationMonths: number): number {
+  if (!durationMonths || durationMonths <= 0) return 0;
+  if (durationMonths < 12) return 0.5;
+  const years = Math.floor(durationMonths / 12);
+  return 1 + 0.5 * (years - 1);
+}
 
 const BROKER_CLAUSES = [
   "ค่าตัวแทนจะชำระเต็มจำนวนทันทีในวันที่ลงนามสัญญาเช่า และมีการรับเงินมัดจำครบถ้วนแล้ว ถือว่างานของสมบูรณ์ในวันนั้นแล้ว และไม่มีการคืนเงินไม่ว่ากรณีใด แม้แต่ผู้เช่าผิดสัญญาหรือย้ายออกก่อนกำหนด",
@@ -899,7 +910,7 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
               <BiText
                 key={row.term}
                 style={[
-                  i < 2 ? styles.brokerCell : styles.brokerCellLast,
+                  i < BROKER_TERM_TABLE.length - 1 ? styles.brokerCell : styles.brokerCellLast,
                   styles.brokerHeaderCell,
                   { padding: 4 },
                 ]}
@@ -912,13 +923,29 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
             {BROKER_TERM_TABLE.map((row, i) => (
               <BiText
                 key={row.term}
-                style={[i < 2 ? styles.brokerCell : styles.brokerCellLast, { padding: 4 }]}
+                style={[
+                  i < BROKER_TERM_TABLE.length - 1 ? styles.brokerCell : styles.brokerCellLast,
+                  { padding: 4 },
+                ]}
               >
                 {row.rate}
               </BiText>
             ))}
           </View>
         </View>
+
+        {(() => {
+          const termMonths = Number(data.contractTermMonths) || 0;
+          const rent = Number(String(data.monthlyRent ?? "").replace(/,/g, "")) || 0;
+          if (!termMonths || !rent) return null;
+          const months = brokerCommissionMonths(termMonths);
+          const amount = Math.round(rent * months);
+          return (
+            <BiText style={[styles.brokerPara, { marginBottom: 8, fontWeight: "bold" }]}>
+              {`ค่าคอมมิชชั่นสำหรับสัญญานี้ (ระยะเวลา ${termMonths} เดือน): เท่ากับค่าเช่า ${months} เดือน = ${bahtNumber(String(amount))} บาท`}
+            </BiText>
+          );
+        })()}
 
         <BiText style={[styles.sectionTitle, { marginBottom: 3, paddingBottom: 1 }]}>
           เงื่อนไข และข้อตกลง
