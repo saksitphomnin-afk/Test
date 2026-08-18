@@ -122,10 +122,14 @@ const styles = StyleSheet.create({
   // ร่วมกับสัญญาเช่า-ซื้อขาย (label เทา, value หนา+ขีดเส้น) กันกระทบเอกสารประเภทอื่น
   brokerLabel: { width: "35%", fontWeight: "bold" },
   brokerValue: { width: "65%" },
-  // หน้าอัดแน่นกว่าเอกสารอื่น (padding/line-height น้อยลง) ให้จบใน 1 หน้าแม้ข้อมูลจริงยาว
+  // หน้าอัดแน่นกว่าเอกสารอื่น (padding/line-height น้อยลง) ให้จบใน 1 หน้าแม้ข้อมูลจริงยาว —
+  // ขอบซ้าย/ขวาเท่ากัน (57pt ~2ซม. ทั้งสองข้าง) แทนขอบซ้ายกว้างกว่าแบบสัญญาเช่า (เผื่อเจาะรูเข้าแฟ้ม)
+  // เพื่อให้ใช้พื้นที่แนวนอนได้เต็มกระดาษ ข้อความชิดขอบทั้งสองฝั่งเท่ากัน
   brokerPage: {
     paddingTop: 42,
     paddingBottom: 42,
+    paddingLeft: 57,
+    paddingRight: 57,
     lineHeight: 1.25,
   },
   brokerPara: { marginBottom: 2, textAlign: "left" },
