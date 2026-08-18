@@ -108,6 +108,16 @@ const styles = StyleSheet.create({
   },
   brokerHeaderCell: { backgroundColor: "#f3f4f6", fontWeight: "bold" },
   brokerRowBorderTop: { borderTopWidth: 1, borderTopColor: "#d1d5db" },
+  // หัวเอกสาร (แยกจาก styles.title/headerLine ที่ใช้ร่วมกับสัญญาเช่า/ซื้อขาย กันกระทบกัน) —
+  // วันที่ชิดขวาบนสุด, หัวข้อใหญ่กว่าเนื้อหาแค่นิดเดียว (18 จาก 16), เรียนชิดขอบซ้าย
+  brokerDate: { textAlign: "right", marginBottom: 10 },
+  brokerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  brokerAddressee: { textAlign: "left", marginBottom: 4 },
 });
 
 // ==================== เงินตรา + คำอ่านไทย ====================
@@ -804,10 +814,14 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>สัญญาแต่งตั้งตัวแทนนายหน้าอสังหาริมทรัพย์</Text>
+        <Text style={styles.brokerDate}>
+          {`วันที่ ${data.contractDate ? thaiDate(data.contractDate) : "-"}`}
+        </Text>
 
-        <BiText style={styles.para}>
-          {`วันที่ ${data.contractDate ? thaiDate(data.contractDate) : "-"}    เรียน ${data.ownerName || "-"} (เจ้าของทรัพย์สิน)`}
+        <Text style={styles.brokerTitle}>สัญญาแต่งตั้งตัวแทนนายหน้าอสังหาริมทรัพย์</Text>
+
+        <BiText style={styles.brokerAddressee}>
+          {`เรียน ${data.ownerName || "-"} (เจ้าของทรัพย์สิน)`}
         </BiText>
 
         <BiText style={[styles.para, { marginBottom: 14 }]}>
