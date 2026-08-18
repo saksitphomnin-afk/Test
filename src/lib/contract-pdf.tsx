@@ -117,7 +117,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
   },
-  brokerAddressee: { textAlign: "left", marginBottom: 4 },
+  brokerAddressee: { textAlign: "left", marginBottom: 4, fontWeight: "bold" },
+  // label ตัวหนา (ไม่ขีดเส้น), value ตัวปกติ (ไม่หนา ไม่ขีดเส้น) — สลับจาก label/value ที่ใช้
+  // ร่วมกับสัญญาเช่า-ซื้อขาย (label เทา, value หนา+ขีดเส้น) กันกระทบเอกสารประเภทอื่น
+  brokerLabel: { width: "35%", fontWeight: "bold" },
+  brokerValue: { width: "65%" },
+  // หน้าอัดแน่นกว่าเอกสารอื่น (padding/line-height น้อยลง) ให้จบใน 1 หน้าแม้ข้อมูลจริงยาว
+  brokerPage: {
+    paddingTop: 42,
+    paddingBottom: 42,
+    lineHeight: 1.25,
+  },
+  brokerPara: { marginBottom: 2, textAlign: "left" },
 });
 
 // ==================== เงินตรา + คำอ่านไทย ====================
@@ -813,49 +824,51 @@ const BROKER_CLAUSES = [
 function BrokerContractDocument({ data }: { data: ContractData }) {
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.brokerDate}>
+      <Page size="A4" style={[styles.page, styles.brokerPage]}>
+        <Text style={[styles.brokerDate, { marginBottom: 6 }]}>
           {`วันที่ ${data.contractDate ? thaiDate(data.contractDate) : "-"}`}
         </Text>
 
-        <Text style={styles.brokerTitle}>สัญญาแต่งตั้งตัวแทนนายหน้าอสังหาริมทรัพย์</Text>
+        <Text style={[styles.brokerTitle, { marginBottom: 6 }]}>
+          สัญญาแต่งตั้งตัวแทนนายหน้าอสังหาริมทรัพย์
+        </Text>
 
         <BiText style={styles.brokerAddressee}>
           {`เรียน ${data.ownerName || "-"} (เจ้าของทรัพย์สิน)`}
         </BiText>
 
-        <BiText style={[styles.para, { marginBottom: 14 }]}>
+        <BiText style={[styles.brokerPara, { marginBottom: 8 }]}>
           Havenz Property ขอขอบคุณที่ท่านมอบความไว้วางใจแต่งตั้งให้เป็นผู้ดำเนินการด้านการตลาด
           ประชาสัมพันธ์ และจัดหาผู้เช่าให้แก่ทรัพย์สินของท่านตามรายละเอียด และเงื่อนไขดังด้านล่างนี้
         </BiText>
 
-        <View style={styles.section} wrap={false}>
+        <View style={[styles.section, { marginBottom: 8 }]} wrap={false}>
           <View style={styles.row}>
-            <BiText style={styles.label}>ประเภททรัพย์</BiText>
-            <BiText style={styles.value}>{data.propertyType || "-"}</BiText>
+            <BiText style={styles.brokerLabel}>ประเภททรัพย์</BiText>
+            <BiText style={styles.brokerValue}>{data.propertyType || "-"}</BiText>
           </View>
           <View style={styles.row}>
-            <BiText style={styles.label}>โครงการ / เลขที่ห้อง / ชั้น</BiText>
-            <BiText style={styles.value}>
+            <BiText style={styles.brokerLabel}>โครงการ / เลขที่ห้อง / ชั้น</BiText>
+            <BiText style={styles.brokerValue}>
               {`${data.propertyProject || "-"} / ${data.propertyRoom || "-"} / ${data.propertyFloor || "-"}`}
             </BiText>
           </View>
           <View style={styles.row}>
-            <BiText style={styles.label}>อัตราค่าเช่าต่อเดือน</BiText>
-            <BiText style={styles.value}>
+            <BiText style={styles.brokerLabel}>อัตราค่าเช่าต่อเดือน</BiText>
+            <BiText style={styles.brokerValue}>
               {data.monthlyRent ? `${bahtNumber(data.monthlyRent)} บาท` : "-"}
             </BiText>
           </View>
           <View style={styles.row}>
-            <BiText style={styles.label}>ชื่อผู้เช่า</BiText>
-            <BiText style={styles.value}>{data.tenantName || "-"}</BiText>
+            <BiText style={styles.brokerLabel}>ชื่อผู้เช่า</BiText>
+            <BiText style={styles.brokerValue}>{data.tenantName || "-"}</BiText>
           </View>
         </View>
 
-        <BiText style={styles.sectionTitle}>
+        <BiText style={[styles.sectionTitle, { marginBottom: 3, paddingBottom: 1 }]}>
           อัตราค่าตอบแทนนายหน้า (สัญญาฉบับแรก)
         </BiText>
-        <View style={styles.brokerTableWrap} wrap={false}>
+        <View style={[styles.brokerTableWrap, { marginBottom: 8 }]} wrap={false}>
           <View style={styles.brokerTableRow}>
             {BROKER_TERM_TABLE.map((row, i) => (
               <BiText
@@ -863,6 +876,7 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
                 style={[
                   i < 2 ? styles.brokerCell : styles.brokerCellLast,
                   styles.brokerHeaderCell,
+                  { padding: 4 },
                 ]}
               >
                 {row.term}
@@ -871,25 +885,30 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
           </View>
           <View style={[styles.brokerTableRow, styles.brokerRowBorderTop]}>
             {BROKER_TERM_TABLE.map((row, i) => (
-              <BiText key={row.term} style={i < 2 ? styles.brokerCell : styles.brokerCellLast}>
+              <BiText
+                key={row.term}
+                style={[i < 2 ? styles.brokerCell : styles.brokerCellLast, { padding: 4 }]}
+              >
                 {row.rate}
               </BiText>
             ))}
           </View>
         </View>
 
-        <BiText style={styles.sectionTitle}>เงื่อนไข และข้อตกลง</BiText>
+        <BiText style={[styles.sectionTitle, { marginBottom: 3, paddingBottom: 1 }]}>
+          เงื่อนไข และข้อตกลง
+        </BiText>
         {BROKER_CLAUSES.map((text, i) => (
-          <BiText key={i} style={styles.para}>
+          <BiText key={i} style={styles.brokerPara}>
             {`${i + 1}) ${text}`}
           </BiText>
         ))}
-        <BiText style={[styles.para, { marginTop: 8 }]}>
+        <BiText style={[styles.brokerPara, { marginTop: 6 }]}>
           เจ้าของทรัพย์สินรับทราบ และยินยอมปฏิบัติตามเงื่อนไขทั้งหมดข้างต้น
         </BiText>
 
-        <View style={styles.signRow}>
-          <SignBox th="เซล / Havenz Property" nameTh={data.salesRepName} showEn={false} showTh />
+        <View style={[styles.signRow, { marginTop: 8 }]}>
+          <SignBox th="นายหน้าอสังหาริมทรัพย์" nameTh={data.salesRepName} showEn={false} showTh />
           <SignBox th="เจ้าของทรัพย์สิน" nameTh={data.ownerName} showEn={false} showTh />
         </View>
 
