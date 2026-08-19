@@ -830,11 +830,31 @@ const BROKER_TERM_TABLE = [
   { term: "สัญญา 3 ปี", rate: "เท่ากับค่าเช่า 2 เดือน" },
 ];
 
+// ค่าคอมมิชชั่นเป็น "จำนวนเดือนของค่าเช่า" ตามระยะเวลาสัญญา (เดือน):
+// ต่ำกว่า 1 ปี = 0.5 เดือน (คงที่), 12 เดือนแรก = 1 เดือน (คงที่), เดือนที่เกิน 12 ขึ้นไปคิด
+// เฉลี่ยต่อเนื่อง (ไม่ใช่ปัดเป็นรายปี) ที่อัตรา 0.5 เดือนค่าเช่า ต่อ 12 เดือน — เช่น สัญญา 17
+// เดือน = 1 + (17-12)/24 = 1.2083 เดือน (ตรงกับตัวอย่างที่ผู้ใช้คำนวณมาให้: ค่าเช่า 80,000
+// -> ปีแรก 80,000 + (5 เดือนที่เกิน x 80,000x0.5/12) = 80,000 + 16,666.67 = 96,666.67)
+function brokerCommissionMonths(durationMonths: number): number {
+  if (!durationMonths || durationMonths <= 0) return 0;
+  if (durationMonths < 12) return 0.5;
+  const extraMonths = durationMonths - 12;
+  return 1 + extraMonths / 24;
+}
+
+// เว้นวรรคจริงแทรกไว้ทุก ๆ ช่วงสั้น ๆ (ไม่เกิน ~25 ตัวอักษรต่อช่วง ที่จุดแบ่งวลีที่อ่านได้
+// ปกติ) กัน react-pdf/textkit auto-insert breathing space ของตัวเอง (ดู insertBreathingSpaces
+// ใน pdf-fonts.tsx) ที่มักตกกลางคำแบบไม่เป็นธรรมชาติ (เช่น "ดำ เนินการ", "เงื่อน ไข") หรือแย่กว่า
+// คือขึ้นยัติภังค์ (-) กลางคำเมื่อไม่มีจุดตัดที่ดีเลยในช่วงยาวเกินไป (เกิดขึ้นจริงในข้อ 4 เดิม)
 const BROKER_CLAUSES = [
-  "ค่าตัวแทนจะชำระเต็มจำนวนทันทีในวันที่ลงนามสัญญาเช่า และมีการรับเงินมัดจำครบถ้วนแล้ว ถือว่างานของสมบูรณ์ในวันนั้นแล้ว และไม่มีการคืนเงินไม่ว่ากรณีใด แม้แต่ผู้เช่าผิดสัญญาหรือย้ายออกก่อนกำหนด",
+  "ค่าตัวแทนจะชำระ เต็มจำนวนทันที ในวันที่ลงนามสัญญาเช่า และมีการรับเงินมัดจำครบถ้วน แล้ว " +
+    "ถือว่างานของสมบูรณ์ ในวันนั้นแล้ว และไม่มีการคืนเงิน ไม่ว่ากรณีใด แม้แต่ผู้เช่าผิดสัญญา หรือย้ายออกก่อนกำหนด",
   "กรณีต่ออายุสัญญา: ปีที่ 2 ถึงปีที่ 4 คิดอัตราปีละ 0.5 เท่าของค่าเช่า 1 เดือน เป็นต้นไป",
-  "กรณีผู้เช่าผิดเงื่อนไขการจอง และยกเลิกก่อนลงนามสัญญาเช่า โดยเงินมัดจำตกเป็นของเจ้าของทรัพย์สิน เจ้าของทรัพย์สินตกลงแบ่งเงินจำนวน 30% ของเงินดังกล่าวให้ทาง Havenz Property",
-  "หากเจ้าของทรัพย์สินยกเลิกการดำเนินการเอง ปฏิเสธการทำสัญญาโดยไม่ใช่ความผิดของลูกค้า หรือทำสัญญาเช่าโดยตรงกับทางผู้เช่าที่ Havenz Property เป็นผู้แนะนำให้ ทางเจ้าของทรัพย์ยินดีตกลงชำระค่าตอบแทนตัวแทนนายหน้าให้เต็มจำนวนตามอัตราที่ระบุไว้ในข้อ 1",
+  "กรณีผู้เช่าผิดเงื่อนไขการจอง และยกเลิกก่อนลงนามสัญญาเช่า โดยเงินมัดจำตกเป็นของ เจ้าของทรัพย์สิน " +
+    "เจ้าของทรัพย์สินตกลง แบ่งเงินจำนวน 30% ของเงินดังกล่าวให้ทาง Havenz Property",
+  "หากเจ้าของทรัพย์สินยกเลิก การดำเนินการเอง ปฏิเสธการทำสัญญา โดยไม่ใช่ความผิดของลูกค้า " +
+    "หรือทำสัญญาเช่า โดยตรง กับทางผู้เช่าที่ Havenz Property เป็นผู้แนะนำให้ " +
+    "ทางเจ้าของทรัพย์ยินดีตกลง ชำระค่าตอบแทนตัวแทน นายหน้า ให้เต็มจำนวน ตามอัตราที่ระบุไว้ ในข้อ 1",
 ];
 
 function BrokerSignBox({ name, role }: { name?: string; role: string }) {
@@ -864,8 +884,9 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
         </BiText>
 
         <BiText style={[styles.brokerPara, { marginBottom: 8 }]}>
-          Havenz Property ขอขอบคุณที่ท่านมอบความไว้วางใจแต่งตั้งให้เป็นผู้ดำเนินการด้านการตลาด
-          ประชาสัมพันธ์ และจัดหาผู้เช่าให้แก่ทรัพย์สินของท่านตามรายละเอียด และเงื่อนไขดังด้านล่างนี้
+          {"Havenz Property ขอขอบคุณที่ท่านมอบความ ไว้วางใจ แต่งตั้งให้เป็นผู้ดำเนินการ " +
+            "ด้านการตลาด ประชาสัมพันธ์ และจัดหาผู้เช่า ให้แก่ทรัพย์สินของท่าน " +
+            "ตามรายละเอียดและเงื่อนไข ดังด้านล่างนี้"}
         </BiText>
 
         <View style={[styles.section, { marginBottom: 8 }]} wrap={false}>
@@ -888,6 +909,12 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
           <View style={styles.row}>
             <BiText style={styles.brokerLabel}>ชื่อผู้เช่า</BiText>
             <BiText style={styles.brokerValue}>{data.tenantName || "-"}</BiText>
+          </View>
+          <View style={styles.row}>
+            <BiText style={styles.brokerLabel}>ระยะเวลาเช่า</BiText>
+            <BiText style={styles.brokerValue}>
+              {data.contractTermMonths ? `${data.contractTermMonths} เดือน` : "-"}
+            </BiText>
           </View>
         </View>
 
@@ -924,6 +951,18 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
           </View>
         </View>
 
+        {(() => {
+          const termMonths = Number(data.contractTermMonths) || 0;
+          const rent = Number(String(data.monthlyRent ?? "").replace(/,/g, "")) || 0;
+          if (!termMonths || !rent) return null;
+          const amount = Math.round(rent * brokerCommissionMonths(termMonths));
+          return (
+            <BiText style={[styles.brokerPara, { marginBottom: 8, fontWeight: "bold" }]}>
+              {`ค่าคอมมิชชั่น ที่เจ้าของทรัพย์สินต้องชำระ (สัญญา ${termMonths} เดือน): ${bahtNumber(String(amount))} บาท`}
+            </BiText>
+          );
+        })()}
+
         <BiText style={[styles.sectionTitle, { marginBottom: 3, paddingBottom: 1 }]}>
           เงื่อนไข และข้อตกลง
         </BiText>
@@ -933,7 +972,7 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
           </BiText>
         ))}
         <BiText style={[styles.brokerPara, { marginTop: 6 }]}>
-          เจ้าของทรัพย์สินรับทราบ และยินยอมปฏิบัติตามเงื่อนไขทั้งหมดข้างต้น
+          {"เจ้าของทรัพย์สินรับทราบ และยินยอมปฏิบัติตามเงื่อนไข ทั้งหมดข้างต้น"}
         </BiText>
 
         <View style={[styles.signRow, { marginTop: 40 }]}>

@@ -51,6 +51,8 @@ export async function GET(
       rentData.monthlyRent ||
       (contract.room.rentPrice ? String(contract.room.rentPrice) : ""),
     tenantName: contract.customer?.name || rentData.tenantName || "-",
+    // ระยะเวลาสัญญาเช่า (เดือน) ที่กรอกไว้ตอนทำสัญญาเช่า ใช้แสดง+คำนวณค่าคอมมิชชั่นที่ต้องชำระจริง
+    contractTermMonths: rentData.durationMonths || "",
   };
 
   const buffer = await renderContractPdf("BROKER", data);
