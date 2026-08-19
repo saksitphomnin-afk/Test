@@ -211,6 +211,17 @@ function boldRoleTerms(segs: RichSegment[]): RichSegment[] {
   return result;
 }
 
+// อ้างอิงข้ออื่น เช่น "ข้อ 5.1" / "Clause 5.1" ห้ามให้เลขข้อไปขึ้นบรรทัดใหม่โดดเดี่ยวจากคำนำหน้า
+// (react-pdf ตัดบรรทัดที่ช่องว่างจริงตามปกติ ไม่รู้ว่าคู่นี้ควรอยู่ติดกัน) แทนที่ช่องว่างด้วย
+// non-breaking space กันไม่ให้ถูกเลือกเป็นจุดตัดบรรทัด
+const CLAUSE_REF_PATTERN = /(ข้อ|Clause) (?=\d)/g;
+function glueClauseRefs(text: string): string {
+  return text.replace(CLAUSE_REF_PATTERN, "$1 ");
+}
+function glueClauseRefsInSegs(segs: RichSegment[]): RichSegment[] {
+  return segs.map((s) => (s.text.includes(" ") ? { ...s, text: glueClauseRefs(s.text) } : s));
+}
+
 // ==================== สัญญาเช่า (ตามเทมเพลตผู้ใช้ 14 ข้อ — ไทย/อังกฤษ) ====================
 
 type ParaMode = "indent" | "flush" | "nested";
@@ -232,8 +243,8 @@ function leaseBlocks(d: ContractData): Block[] {
     en: string | RichSegment[],
     opts: { mode?: ParaMode } = {},
   ): Item => ({
-    th: boldRoleTerms(seg(th)),
-    en: boldRoleTerms(seg(en)),
+    th: boldRoleTerms(glueClauseRefsInSegs(seg(th))),
+    en: boldRoleTerms(glueClauseRefsInSegs(seg(en))),
     mode: opts.mode ?? "indent",
   });
   // ข้อ 1 และ 3 ไม่มีเลขข้อย่อย (x.y) ในเทมเพลตต้นฉบับ — บรรทัดต่อเนื่องจึงชิดขอบ
@@ -265,7 +276,7 @@ function leaseBlocks(d: ContractData): Block[] {
           T`and Lessee, name-surname ${or(d.tenantNameEn || d.tenantName)}, national ID / passport No. ${or(d.tenantIdOrPassport)}, address ${or(d.tenantAddress)}, telephone ${or(d.tenantPhone)}, hereinafter referred to as the "Lessee"`,
         ),
         flush(
-          "ทั้งสองฝ่ายตกลงทำสัญญาโดยมีรายละเอียดดังต่อไปนี้",
+          "ทั้งสองฝ่ายตกลงทำสัญญา โดยมีรายละเอียดดังต่อไปนี้",
           "Both parties agree to enter into this agreement with the following details:",
         ),
       ],
@@ -275,11 +286,11 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "2. Leased Property",
       items: [
         item(
-          T`2.1 ผู้ให้เช่าตกลงให้ผู้เช่าเช่าห้องชุดเลขที่ ${or(d.propertyUnitNo)} ชั้น ${or(d.propertyFloor)} อาคาร ${or(d.propertyBuilding)} โครงการ ${or(d.propertyProject)} ที่ตั้ง ${or(d.propertyAddress)}`,
+          T`2.1 ผู้ให้เช่าตกลงให้ผู้เช่าเช่า ห้องชุดเลขที่ ${or(d.propertyUnitNo)} ชั้น ${or(d.propertyFloor)} อาคาร ${or(d.propertyBuilding)} โครงการ ${or(d.propertyProject)} ที่ตั้ง ${or(d.propertyAddress)}`,
           T`2.1 The Lessor agrees to lease to the Lessee the condominium unit No. ${or(d.propertyUnitNo)}, Floor ${or(d.propertyFloor)}, Building ${or(d.propertyBuilding)}, ${or(d.propertyProject)} project, located at ${or(d.propertyAddress)}`,
         ),
         item(
-          "รวมถึงทรัพย์สิน และอุปกรณ์ภายในห้องตามบัญชีรายการแนบท้าย ซึ่งถือเป็นส่วนหนึ่งของสัญญาฉบับนี้",
+          "รวมถึงทรัพย์สิน และอุปกรณ์ภายในห้อง ตามบัญชีรายการแนบท้าย ซึ่งถือเป็นส่วนหนึ่ง ของสัญญาฉบับนี้",
           "including the furniture and fixtures inside the unit as per the attached inventory list, which is deemed a part of this agreement.",
         ),
       ],
@@ -301,17 +312,17 @@ function leaseBlocks(d: ContractData): Block[] {
           T`and ending on ${engDate(d.endDate)}`,
         ),
         item(
-          "เมื่อครบกำหนด หากประสงค์จะต่อสัญญา ทั้งสองฝ่ายต้องตกลงกันเป็นลายลักษณ์อักษรก่อนสัญญาสิ้นสุด",
+          "เมื่อครบกำหนด หากประสงค์จะต่อสัญญา ทั้งสองฝ่ายต้องตกลงกัน เป็นลายลักษณ์อักษร ก่อนสัญญาสิ้นสุด",
           "Upon expiration, if either party wishes to renew this agreement, both parties must agree in writing before the agreement expires.",
         ),
       ],
     },
     {
-      titleTh: "4. ค่าเช่า/ค่าส่วนกลาง และค่าใช้จ่ายของนิติบุคคลอาคารชุด",
+      titleTh: "4. ค่าเช่า/ค่าส่วนกลาง และค่าใช้จ่ายของ นิติบุคคลอาคารชุด",
       titleEn: "4. Rent / Common Fees and Condominium Juristic Person Expenses",
       items: [
         item(
-          T`4.1 ผู้เช่าตกลงชำระค่าเช่าเดือนละ ${bahtWithWords(d.monthlyRent)}`,
+          T`4.1 ผู้เช่าตกลงชำระ ค่าเช่าเดือนละ ${bahtWithWords(d.monthlyRent)}`,
           T`4.1 The Lessee agrees to pay rent of ${bahtEn(d.monthlyRent)} per month`,
         ),
         flush(
@@ -337,11 +348,11 @@ function leaseBlocks(d: ContractData): Block[] {
           { mode: "nested" },
         ),
         flush(
-          'การชำระถือว่าสมบูรณ์เมื่อเงินเข้าบัญชีของ "ผู้ให้เช่า" เรียบร้อยแล้ว',
+          'การชำระถือว่าสมบูรณ์ เมื่อเงินเข้าบัญชีของ "ผู้ให้เช่า" เรียบร้อยแล้ว',
           'Payment shall be deemed complete upon receipt of funds into the "Lessor"\'s account.',
         ),
         item(
-          "4.2 ผู้ให้เช่าตกลงเป็นผู้รับผิดชอบชำระ ค่าส่วนกลาง และค่าใช้จ่ายอื่นใดที่นิติบุคคลอาคารชุดเรียกเก็บ ซึ่งเกิดขึ้นหรือมีหน้าที่ต้องชำระในระหว่างอายุสัญญาเช่าฉบับนี้ ทั้งนี้ เว้นแต่คู่สัญญาทั้งสองฝ่ายจะได้ตกลงกันไว้เป็นอย่างอื่นเป็นลายลักษณ์อักษร",
+          "4.2 ผู้ให้เช่าตกลงเป็น ผู้รับผิดชอบชำระ ค่าส่วนกลาง และค่าใช้จ่ายอื่นใด ที่นิติบุคคลอาคารชุด เรียกเก็บ ซึ่งเกิดขึ้น หรือมีหน้าที่ต้องชำระ ในระหว่างอายุสัญญา เช่าฉบับนี้ ทั้งนี้ เว้นแต่คู่สัญญาทั้งสองฝ่าย จะได้ตกลงกันไว้เป็นอย่างอื่น เป็นลายลักษณ์อักษร",
           "4.2 The Lessor agrees to be responsible for the common area fees and any other expenses charged by the condominium juristic person that are incurred or due during the term of this lease agreement, unless otherwise agreed in writing by both parties.",
         ),
       ],
@@ -351,11 +362,11 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "5. Security Deposit and Advance Payment",
       items: [
         item(
-          T`5.1 ผู้เช่าได้ชำระเงินประกันแก่ผู้ให้เช่า จำนวน ${bahtWithWords(d.depositAmount)} ในวันทำสัญญา โดยผู้ให้เช่าจะถือเงินประกันไว้ตลอดอายุสัญญา เพื่อเป็นหลักประกันการปฏิบัติตามสัญญา รวมถึงความเสียหาย หนี้สิน หรือค่าใช้จ่ายใด ๆ ที่ผู้เช่ามีหน้าที่รับผิดชอบตามสัญญา ผู้เช่าไม่สามารถนำเงินประกันมาหักชำระค่าเช่าหรือหนี้ที่ถึงกำหนดชำระได้ เว้นแต่ผู้ให้เช่าจะอนุญาตเป็นลายลักษณ์อักษร`,
+          T`5.1 ผู้เช่าได้ชำระเงินประกัน แก่ผู้ให้เช่า จำนวน ${bahtWithWords(d.depositAmount)} ในวันทำสัญญา โดยผู้ให้เช่า จะถือเงินประกันไว้ ตลอดอายุสัญญา เพื่อเป็นหลักประกัน การปฏิบัติตามสัญญา รวมถึงความเสียหาย หนี้สิน หรือค่าใช้จ่ายใด ๆ ที่ผู้เช่ามีหน้าที่ รับผิดชอบตามสัญญา ผู้เช่าไม่สามารถนำ เงินประกัน มาหักชำระค่าเช่า หรือหนี้ที่ถึงกำหนดชำระได้ เว้นแต่ผู้ให้เช่าจะอนุญาต เป็นลายลักษณ์อักษร`,
           T`5.1 The Lessee has paid a security deposit to the Lessor in the amount of ${bahtEn(d.depositAmount)} on the date of signing this agreement. The Lessor shall hold the deposit throughout the term of this agreement as security for the Lessee's performance hereunder, including any damages, liabilities, or expenses for which the Lessee is responsible. The Lessee may not use the deposit to offset rent or any other debt due, unless permitted in writing by the Lessor.`,
         ),
         item(
-          "5.2 ผู้ให้เช่าจะคืนเงินประกันภายใน 15 วัน หลังผู้เช่าคืนห้อง และตรวจสอบแล้วว่าไม่มีความเสียหายหรือค่าใช้จ่ายค้างชำระ โดยผู้เช่าอนุญาตให้หักค่าเสียหายหรือค่าใช้จ่ายที่ผู้เช่าต้องรับผิดชอบก่อนชำระเงินประกันคืนได้",
+          "5.2 ผู้ให้เช่าจะคืนเงินประกัน ภายใน 15 วัน หลังผู้เช่าคืนห้อง และตรวจสอบแล้วว่า ไม่มีความเสียหาย หรือค่าใช้จ่ายค้างชำระ โดยผู้เช่าอนุญาตให้หัก ค่าเสียหายหรือค่าใช้จ่าย ที่ผู้เช่าต้องรับผิดชอบ ก่อนชำระ เงินประกันคืนได้",
           "5.2 The Lessor shall return the security deposit within 15 days after the Lessee returns the unit and it has been inspected and found free of damage or outstanding charges, provided that the Lessee agrees that any damages or expenses for which the Lessee is responsible may be deducted before the deposit is returned.",
         ),
       ],
@@ -365,27 +376,27 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "6. Duties and Restrictions of the Lessee",
       items: [
         item(
-          "ผู้เช่าตกลงที่จะปฏิบัติตามข้อกำหนดและเงื่อนไขดังต่อไปนี้โดยเคร่งครัด",
+          "ผู้เช่าตกลงที่จะปฏิบัติ ตามข้อกำหนดและเงื่อนไข ดังต่อไปนี้โดยเคร่งครัด",
           "The Lessee agrees to strictly comply with the following terms and conditions:",
         ),
         item(
-          "6.1 ผู้เช่าตกลงใช้ทรัพย์สินที่เช่าเพื่อการพักอาศัยของผู้เช่าและบุคคลที่ระบุไว้ในสัญญานี้เท่านั้น และจะไม่ใช้ทรัพย์สินที่เช่าเพื่อวัตถุประสงค์อื่นโดยไม่ได้รับความยินยอมจากผู้ให้เช่า",
+          "6.1 ผู้เช่าตกลงใช้ ทรัพย์สินที่เช่า เพื่อการพักอาศัยของผู้เช่า และบุคคลที่ระบุไว้ในสัญญานี้ เท่านั้น และจะไม่ใช้ทรัพย์สินที่เช่า เพื่อวัตถุประสงค์อื่น โดยไม่ได้รับความยินยอม จากผู้ให้เช่า",
           "6.1 The Lessee agrees to use the leased property solely for the residence of the Lessee and the persons named in this agreement, and shall not use the leased property for any other purpose without the Lessor's consent.",
         ),
         item(
-          "6.2 ผู้เช่าตกลงว่าจะไม่ใช้ หรือยินยอมให้บุคคลใดใช้ทรัพย์สินที่เช่าเพื่อประกอบกิจการ การกระทำ หรือกิจกรรมใด ๆ ที่ขัดต่อกฎหมาย ศีลธรรมอันดี หรือข้อบังคับของนิติบุคคลอาคารชุด",
+          "6.2 ผู้เช่าตกลงว่าจะไม่ใช้ หรือยินยอมให้บุคคลใดใช้ ทรัพย์สินที่เช่า เพื่อประกอบกิจการ การกระทำ หรือกิจกรรมใด ๆ ที่ขัดต่อกฎหมาย ศีลธรรมอันดี หรือข้อบังคับ ของนิติบุคคลอาคารชุด",
           "6.2 The Lessee agrees not to use, or allow any person to use, the leased property to conduct any business, act, or activity that is contrary to the law, public morals, or the regulations of the condominium juristic person.",
         ),
         item(
-          "6.3 ผู้เช่ามีหน้าที่ดูแลรักษาทรัพย์สินที่เช่า รวมถึงเฟอร์นิเจอร์ เครื่องใช้ไฟฟ้า และทรัพย์สินอื่นที่ผู้ให้เช่าจัดไว้ภายในห้อง ให้อยู่ในสภาพเรียบร้อย และเหมาะสมแก่การใช้งาน โดยผู้เช่าต้องรับผิดชอบต่อความเสียหายที่เกิดจากการใช้งานโดยประมาทเลินเล่อหรือผิดวิธีของผู้เช่า หรือบุคคลที่ผู้เช่าอนุญาตให้เข้ามาใช้ทรัพย์สินที่เช่า",
+          "6.3 ผู้เช่ามีหน้าที่ดูแลรักษา ทรัพย์สินที่เช่า รวมถึงเฟอร์นิเจอร์ เครื่องใช้ไฟฟ้า และทรัพย์สินอื่น ที่ผู้ให้เช่าจัดไว้ภายในห้อง ให้อยู่ในสภาพเรียบร้อย และเหมาะสมแก่การใช้งาน โดยผู้เช่า ต้องรับผิดชอบ ต่อความเสียหาย ที่เกิดจากการใช้งาน โดยประมาทเลินเล่อ หรือผิดวิธีของผู้เช่า หรือบุคคลที่ ผู้เช่าอนุญาต ให้เข้ามาใช้ทรัพย์สินที่เช่า",
           "6.3 The Lessee is responsible for maintaining the leased property, including the furniture, electrical appliances, and other property provided by the Lessor inside the unit, in good and usable condition. The Lessee shall be responsible for any damage caused by negligent or improper use by the Lessee or any person permitted by the Lessee to use the leased property.",
         ),
         item(
-          "6.4 ผู้เช่าจะไม่ทำการดัดแปลง ต่อเติม รื้อถอน เจาะ ติดตั้ง หรือเปลี่ยนแปลงส่วนหนึ่งส่วนใดของทรัพย์สินที่เช่า รวมถึงอุปกรณ์หรือระบบต่าง ๆ ภายในห้อง เว้นแต่จะได้รับความยินยอมเป็นลายลักษณ์อักษรจากผู้ให้เช่าก่อนดำเนินการ",
+          "6.4 ผู้เช่าจะไม่ทำการดัดแปลง ต่อเติม รื้อถอน เจาะ ติดตั้ง หรือเปลี่ยนแปลง ส่วนหนึ่งส่วนใด ของทรัพย์สินที่เช่า รวมถึงอุปกรณ์หรือระบบต่าง ๆ ภายในห้อง เว้นแต่จะได้รับความยินยอม เป็นลายลักษณ์อักษร จากผู้ให้เช่าก่อนดำเนินการ",
           "6.4 The Lessee shall not alter, extend, demolish, drill, install, or modify any part of the leased property, including any equipment or systems inside the unit, without prior written consent from the Lessor.",
         ),
         item(
-          "6.5 ผู้เช่าจะไม่ให้เช่าช่วง โอนสิทธิหรือหน้าที่ตามสัญญา หรือยินยอมให้บุคคลอื่นเข้าครอบครองหรือใช้ทรัพย์สินที่เช่าแทนผู้เช่า ไม่ว่าทั้งหมดหรือบางส่วน",
+          "6.5 ผู้เช่าจะไม่ให้เช่าช่วง โอนสิทธิหรือหน้าที่ตามสัญญา หรือยินยอมให้บุคคลอื่น เข้าครอบครองหรือใช้ ทรัพย์สินที่เช่าแทนผู้เช่า ไม่ว่าทั้งหมดหรือบางส่วน",
           "6.5 The Lessee shall not sublease, assign its rights or obligations under this agreement, or allow any other person to occupy or use the leased property in the Lessee's place, whether in whole or in part.",
         ),
       ],
@@ -395,33 +406,33 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "7. Prohibitions on Residency",
       items: [
         item(
-          "ผู้เช่าตกลงที่จะปฏิบัติตามข้อกำหนดและเงื่อนไขดังต่อไปนี้โดยเคร่งครัด",
+          "ผู้เช่าตกลงที่จะปฏิบัติ ตามข้อกำหนดและเงื่อนไข ดังต่อไปนี้โดยเคร่งครัด",
           "The Lessee agrees to strictly comply with the following terms and conditions:",
         ),
         item(
-          "7.1 ผู้เช่าห้ามสูบบุหรี่ภายในห้องเช่า บริเวณระเบียง หรือบริเวณอื่นใดที่กฎหมายหรือข้อบังคับของนิติบุคคลอาคารชุดกำหนดให้เป็นพื้นที่ห้ามสูบบุหรี่ หากผู้เช่าฝ่าฝืน ผู้เช่าต้องรับผิดชอบค่าใช้จ่ายในการทำความสะอาด กำจัดกลิ่น ค่าซ่อมแซม หรือค่าใช้จ่ายอื่นใดที่เกิดขึ้นจริงจากการฝ่าฝืนดังกล่าว และหากผู้เช่าฝ่าฝืนซ้ำ ผู้ให้เช่ามีสิทธิบอกเลิกสัญญาตามกฎหมายและเงื่อนไขที่กำหนดไว้ในสัญญาฉบับนี้",
+          "7.1 ผู้เช่าห้ามสูบบุหรี่ ภายในห้องเช่า บริเวณระเบียง หรือบริเวณอื่นใด ที่กฎหมายหรือข้อบังคับ ของนิติบุคคลอาคารชุด กำหนดให้เป็น พื้นที่ห้ามสูบบุหรี่ หากผู้เช่าฝ่าฝืน ผู้เช่าต้องรับผิดชอบ ค่าใช้จ่าย ในการทำความสะอาด กำจัดกลิ่น ค่าซ่อมแซม หรือค่าใช้จ่ายอื่นใด ที่เกิดขึ้นจริง จากการฝ่าฝืนดังกล่าว และหากผู้เช่าฝ่าฝืนซ้ำ ผู้ให้เช่ามีสิทธิ บอกเลิกสัญญา ตามกฎหมายและเงื่อนไข ที่กำหนดไว้ในสัญญาฉบับนี้",
           "7.1 The Lessee shall not smoke inside the leased unit, on the balcony, or in any other area designated as a no-smoking area by law or by the regulations of the condominium juristic person. If the Lessee violates this, the Lessee shall be responsible for cleaning costs, odor removal, repair costs, or any other actual expenses arising from such violation, and if the Lessee repeats the violation, the Lessor has the right to terminate this agreement in accordance with the law and the conditions set out herein.",
         ),
         item(
-          "7.2 ผู้เช่าห้ามนำสัตว์เลี้ยงเข้ามาเลี้ยงหรือพักอาศัยในทรัพย์สินที่เช่า หากการเลี้ยงสัตว์ดังกล่าวขัดต่อข้อบังคับของนิติบุคคลอาคารชุด",
+          "7.2 ผู้เช่าห้ามนำสัตว์เลี้ยง เข้ามาเลี้ยงหรือพักอาศัย ในทรัพย์สินที่เช่า หากการเลี้ยงสัตว์ดังกล่าว ขัดต่อข้อบังคับ ของนิติบุคคลอาคารชุด",
           "7.2 The Lessee shall not bring any pets into or keep them in the leased property if keeping such pets is contrary to the regulations of the condominium juristic person.",
         ),
         item(
-          "7.3 ผู้เช่าต้องไม่กระทำการใด ๆ อันก่อให้เกิดความเดือดร้อน รำคาญ เสียงดัง หรือกระทบต่อสิทธิในการอยู่อาศัยโดยปกติของผู้อยู่อาศัยรายอื่น",
+          "7.3 ผู้เช่าต้องไม่กระทำการใด ๆ อันก่อให้เกิดความเดือดร้อน รำคาญ เสียงดัง หรือกระทบต่อสิทธิ ในการอยู่อาศัยโดยปกติ ของผู้อยู่อาศัยรายอื่น",
           "7.3 The Lessee shall not engage in any act that causes nuisance, disturbance, excessive noise, or otherwise affects the normal residential rights of other residents.",
         ),
         item(
-          "7.4 ผู้เช่าต้องปฏิบัติตามกฎหมาย ระเบียบ ข้อบังคับ และประกาศของนิติบุคคลอาคารชุด รวมถึงกฎระเบียบอื่นที่เกี่ยวข้องกับการใช้ทรัพย์สินที่เช่าโดยเคร่งครัด",
+          "7.4 ผู้เช่าต้องปฏิบัติตามกฎหมาย ระเบียบ ข้อบังคับ และประกาศของ นิติบุคคลอาคารชุด รวมถึงกฎระเบียบอื่น ที่เกี่ยวข้องกับการใช้ ทรัพย์สินที่เช่าโดยเคร่งครัด",
           "7.4 The Lessee must strictly comply with the laws, rules, regulations, and announcements of the condominium juristic person, including any other regulations relating to the use of the leased property.",
         ),
       ],
     },
     {
-      titleTh: "8. ค่าสาธารณูปโภคและค่าใช้จ่ายจากการใช้ทรัพย์สินที่เช่า",
+      titleTh: "8. ค่าสาธารณูปโภค และค่าใช้จ่าย จากการใช้ทรัพย์สินที่เช่า",
       titleEn: "8. Utilities and Expenses from Use of the Leased Property",
       items: [
         item(
-          "8.1 ผู้เช่าตกลงเป็นผู้รับผิดชอบค่าใช้จ่ายที่เกิดจากการใช้ทรัพย์สินที่เช่าตลอดระยะเวลาการเช่า ได้แก่ ค่าไฟฟ้า ค่าน้ำประปา ค่าอินเทอร์เน็ต ค่าเคเบิลทีวี (ถ้ามี) รวมถึงค่าใช้จ่ายอื่นใดที่เกิดจากการใช้ห้องหรือการขอใช้บริการเพิ่มเติมของผู้เช่า ผู้เช่าตกลงชำระค่าใช้จ่ายดังกล่าวตามจำนวนที่เรียกเก็บจริง และภายในกำหนดเวลาที่ผู้ให้บริการหรือนิติบุคคลอาคารชุดกำหนด",
+          "8.1 ผู้เช่าตกลงเป็นผู้รับผิดชอบ ค่าใช้จ่ายที่เกิดจาก การใช้ทรัพย์สินที่เช่า ตลอดระยะเวลาการเช่า ได้แก่ ค่าไฟฟ้า ค่าน้ำประปา ค่าอินเทอร์เน็ต ค่าเคเบิลทีวี (ถ้ามี) รวมถึงค่าใช้จ่ายอื่นใด ที่เกิดจากการใช้ห้อง หรือการขอใช้บริการเพิ่มเติม ของผู้เช่า ผู้เช่าตกลงชำระ ค่าใช้จ่ายดังกล่าว ตามจำนวนที่เรียกเก็บจริง และ ภายในกำหนดเวลา ที่ผู้ให้บริการ หรือนิติบุคคลอาคารชุดกำหนด",
           "8.1 The Lessee agrees to be responsible for the expenses arising from the use of the leased property throughout the lease term, including electricity, water supply, internet, and cable TV (if any), as well as any other expenses arising from the use of the unit or additional services requested by the Lessee. The Lessee agrees to pay such expenses according to the amount actually charged and within the time period set by the service provider or the condominium juristic person.",
         ),
       ],
@@ -431,29 +442,29 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "9. Repairs and Damages",
       items: [
         item(
-          "9.1 ความเสียหายหรือการชำรุดที่เกิดจากการเสื่อมสภาพตามอายุการใช้งานหรือการใช้งานตามปกติของทรัพย์สินที่เช่า ผู้ให้เช่าเป็นผู้รับผิดชอบค่าใช้จ่ายในการซ่อมแซม",
+          "9.1 ความเสียหายหรือการชำรุด ที่เกิดจากการเสื่อมสภาพ ตามอายุการใช้งาน หรือการใช้งานตามปกติ ของทรัพย์สินที่เช่า ผู้ให้เช่าเป็นผู้รับผิดชอบ ค่าใช้จ่ายในการซ่อมแซม",
           "9.1 Damage or deterioration resulting from normal wear and tear or normal use of the leased property shall be the Lessor's responsibility to repair, at the Lessor's expense.",
         ),
         item(
-          "9.2 ความเสียหายที่เกิดจากการใช้งานผิดวิธี การกระทำโดยประมาทเลินเล่อ หรือการละเลยของผู้เช่าหรือบุคคลที่ผู้เช่าอนุญาตให้เข้ามาใช้ทรัพย์สินที่เช่า ผู้เช่าต้องเป็นผู้รับผิดชอบค่าใช้จ่ายในการซ่อมแซมและค่าเสียหายที่เกิดขึ้นทั้งหมด",
+          "9.2 ความเสียหายที่เกิดจาก การใช้งานผิดวิธี การกระทำโดยประมาทเลินเล่อ หรือการละเลยของ ผู้เช่า หรือบุคคลที่ผู้เช่าอนุญาต ให้เข้ามาใช้ทรัพย์สินที่เช่า ผู้เช่าต้องเป็นผู้รับผิดชอบ ค่าใช้จ่ายในการซ่อมแซม และค่าเสียหาย ที่เกิดขึ้นทั้งหมด",
           "9.2 Damage arising from improper use, negligence, or carelessness by the Lessee or any person permitted by the Lessee to use the leased property shall be the Lessee's responsibility, and the Lessee must bear all repair costs and damages incurred.",
         ),
         item(
-          "9.3 เมื่อผู้เช่าพบความชำรุดเสียหายหรือเหตุผิดปกติที่สำคัญ ผู้เช่าต้องแจ้งให้ผู้ให้เช่าทราบโดยทันที เพื่อให้ผู้ให้เช่าสามารถดำเนินการตรวจสอบและซ่อมแซมได้โดยเร็ว",
+          "9.3 เมื่อผู้เช่าพบ ความชำรุดเสียหาย หรือเหตุผิดปกติที่สำคัญ ผู้เช่าต้องแจ้งให้ผู้ให้เช่า ทราบโดยทันที เพื่อให้ผู้ให้เช่าสามารถ ดำเนินการตรวจสอบ และซ่อมแซมได้โดยเร็ว",
           "9.3 When the Lessee discovers any significant damage or abnormality, the Lessee must notify the Lessor immediately so that the Lessor can inspect and carry out repairs promptly.",
         ),
       ],
     },
     {
-      titleTh: "10. การเข้าตรวจสอบทรัพย์สินที่เช่า",
+      titleTh: "10. การเข้าตรวจสอบ ทรัพย์สินที่เช่า",
       titleEn: "10. Inspection of the Leased Property",
       items: [
         item(
-          "10.1 ผู้ให้เช่ามีสิทธิเข้าตรวจสอบทรัพย์สินที่เช่า เพื่อดูแล ตรวจสอบสภาพห้อง หรือดำเนินการซ่อมแซมที่จำเป็น โดยผู้ให้เช่าจะแจ้งให้ผู้เช่าทราบล่วงหน้าไม่น้อยกว่า 24 ชั่วโมง และจะดำเนินการในเวลาอันสมควร",
+          "10.1 ผู้ให้เช่ามีสิทธิเข้าตรวจสอบ ทรัพย์สินที่เช่า เพื่อดูแล ตรวจสอบสภาพห้อง หรือดำเนินการ ซ่อมแซมที่จำเป็น โดยผู้ให้เช่าจะแจ้ง ให้ผู้เช่าทราบ ล่วงหน้าไม่น้อยกว่า 24 ชั่วโมง และจะดำเนินการ ในเวลาอันสมควร",
           "10.1 The Lessor has the right to enter and inspect the leased property to maintain and check the condition of the unit or to carry out necessary repairs, provided that the Lessor gives the Lessee at least 24 hours' advance notice and carries out such inspection at a reasonable time.",
         ),
         item(
-          "10.2 ทั้งนี้ในกรณีฉุกเฉินหรือมีเหตุอันควรเชื่อได้ว่าอาจเกิดความเสียหายต่อชีวิต ร่างกาย หรือทรัพย์สิน ผู้ให้เช่าสามารถเข้าตรวจสอบหรือดำเนินการที่จำเป็นได้โดยไม่ต้องแจ้งล่วงหน้า",
+          "10.2 ทั้งนี้ในกรณีฉุกเฉิน หรือมีเหตุอันควรเชื่อได้ว่า อาจเกิดความเสียหายต่อชีวิต ร่างกาย หรือทรัพย์สิน ผู้ให้เช่าสามารถเข้าตรวจสอบ หรือดำเนินการที่จำเป็นได้ โดยไม่ต้องแจ้งล่วงหน้า",
           "10.2 In an emergency, or where there is reasonable cause to believe that damage to life, body, or property may occur, the Lessor may enter and inspect or take necessary action without prior notice.",
         ),
       ],
@@ -463,11 +474,11 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "11. Default in Rent Payment",
       items: [
         item(
-          T`11.1 หากผู้เช่าไม่ชำระค่าเช่าภายในกำหนด และค้างชำระเกิน ${or(d.lateDays)} วัน ผู้เช่าตกลงรับผิดชอบค่าปรับ ดอกเบี้ย หรือค่าใช้จ่ายอื่นที่เกี่ยวข้อง (ถ้ามี) ตามที่กฎหมายกำหนด และผู้ให้เช่ามีสิทธิเรียกร้องให้ผู้เช่าชำระหนี้ค้างดังกล่าว รวมถึงดำเนินการตามสิทธิและขั้นตอนที่กฎหมายกำหนด`,
+          T`11.1 หากผู้เช่าไม่ชำระค่าเช่า ภายในกำหนด และค้างชำระเกิน ${or(d.lateDays)} วัน ผู้เช่าตกลงรับผิดชอบค่าปรับ ดอกเบี้ย หรือค่าใช้จ่ายอื่น ที่เกี่ยวข้อง (ถ้ามี) ตามที่กฎหมายกำหนด และผู้ให้เช่า มีสิทธิเรียกร้อง ให้ผู้เช่าชำระ หนี้ค้างดังกล่าว รวมถึงดำเนินการตามสิทธิ และขั้นตอนที่กฎหมายกำหนด`,
           T`11.1 If the Lessee fails to pay rent by the due date and payment remains overdue for more than ${or(d.lateDays)} days, the Lessee agrees to be responsible for any penalties, interest, or other related expenses (if any) as provided by law, and the Lessor has the right to demand payment of such outstanding debt, including exercising its rights and following the procedures provided by law.`,
         ),
         item(
-          "หากการผิดนัดดังกล่าวเข้าข่ายเป็นเหตุให้บอกเลิกสัญญาตามสัญญาฉบับนี้หรือกฎหมาย ผู้ให้เช่ามีสิทธิบอกเลิกสัญญาและดำเนินการตามกฎหมายต่อไป",
+          "หากการผิดนัดดังกล่าว เข้าข่ายเป็นเหตุ ให้บอกเลิกสัญญา ตามสัญญาฉบับนี้หรือกฎหมาย ผู้ให้เช่ามีสิทธิ บอกเลิกสัญญา และดำเนินการตามกฎหมายต่อไป",
           "If such default constitutes grounds for termination of this agreement under this agreement or under the law, the Lessor has the right to terminate this agreement and proceed in accordance with the law.",
         ),
       ],
@@ -477,15 +488,15 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "12. Termination of Agreement",
       items: [
         item(
-          "12.1 หากผู้เช่าประสงค์จะบอกเลิกสัญญาเช่าก่อนครบกำหนด โดยมิได้เกิดจากเหตุที่ทรัพย์สินไม่สามารถใช้เพื่อการอยู่อาศัยได้ตามปกติ เช่น ภัยพิบัติ แผ่นดินไหว หรือเหตุเพลิงไหม้ และมิได้เกิดจากความผิดของผู้ให้เช่า ให้ถือเป็นการบอกเลิกสัญญาก่อนครบกำหนดโดยผู้เช่า และผู้ให้เช่าย่อมมีสิทธิริบเงินประกันตามข้อ 5.1 ทั้งหมดทันที",
+          "12.1 หากผู้เช่าประสงค์ จะบอกเลิกสัญญาเช่า ก่อนครบกำหนด โดยมิได้เกิดจากเหตุ ที่ทรัพย์สินไม่สามารถใช้ เพื่อการอยู่อาศัยได้ตามปกติ เช่น ภัยพิบัติ แผ่นดินไหว หรือเหตุเพลิงไหม้ และมิได้ เกิดจากความผิด ของผู้ให้เช่า ให้ถือเป็นการบอกเลิกสัญญา ก่อนครบกำหนดโดยผู้เช่า และผู้ให้เช่าย่อมมีสิทธิ ริบเงินประกันตามข้อ 5.1 ทั้งหมดทันที",
           "12.1 If the Lessee wishes to terminate this lease agreement before its expiration, and such termination is not due to the leased property being unable to be used for normal residential purposes (such as a natural disaster, earthquake, or fire) and is not due to the Lessor's fault, this shall be deemed early termination by the Lessee, and the Lessor shall have the right to immediately forfeit the entire security deposit under Clause 5.1.",
         ),
         item(
-          "12.2 หากผู้เช่าฝ่าฝืนหรือไม่ปฏิบัติตามเงื่อนไขที่กำหนดไว้ในสัญญาเช่า ผู้ให้เช่ามีสิทธิแจ้งเตือนผู้เช่าเป็นลายลักษณ์อักษรจำนวน 2 ครั้ง หากภายหลังการแจ้งเตือนครั้งที่ 2 ผู้เช่ายังคงไม่ปฏิบัติตามเงื่อนไขดังกล่าว ผู้ให้เช่ามีสิทธิบอกเลิกสัญญาและริบเงินประกันตามข้อ 5.1 ทั้งหมดทันที",
+          "12.2 หากผู้เช่าฝ่าฝืน หรือไม่ปฏิบัติตามเงื่อนไข ที่กำหนดไว้ในสัญญาเช่า ผู้ให้เช่ามีสิทธิแจ้งเตือน ผู้เช่าเป็นลายลักษณ์อักษร จำนวน 2 ครั้ง หากภายหลัง การแจ้งเตือนครั้งที่ 2 ผู้เช่ายังคงไม่ปฏิบัติ ตามเงื่อนไข ดังกล่าว ผู้ให้เช่ามีสิทธิ บอกเลิกสัญญา และริบเงินประกันตามข้อ 5.1 ทั้งหมดทันที",
           "12.2 If the Lessee violates or fails to comply with the conditions set out in this lease agreement, the Lessor has the right to issue the Lessee two (2) written warnings. If, after the second warning, the Lessee still fails to comply with such conditions, the Lessor has the right to terminate this agreement and immediately forfeit the entire security deposit under Clause 5.1.",
         ),
         item(
-          "12.3 หากผู้ให้เช่าประสงค์จะบอกเลิกสัญญาก่อนครบกำหนด ผู้ให้เช่าต้องแจ้งให้ผู้เช่าทราบเป็นลายลักษณ์อักษรล่วงหน้าไม่น้อยกว่า 30 วัน และต้องคืนเงินประกันตามข้อ 5.1 ให้แก่ผู้เช่า พร้อมชดใช้ค่าเสียหายตามที่กฎหมายกำหนด",
+          "12.3 หากผู้ให้เช่าประสงค์ จะบอกเลิกสัญญา ก่อนครบกำหนด ผู้ให้เช่าต้องแจ้ง ให้ผู้เช่าทราบ เป็นลายลักษณ์อักษร ล่วงหน้าไม่น้อยกว่า 30 วัน และต้องคืนเงินประกันตามข้อ 5.1 ให้แก่ผู้เช่า พร้อมชดใช้ค่าเสียหาย ตามที่กฎหมายกำหนด",
           "12.3 If the Lessor wishes to terminate this agreement before its expiration, the Lessor must notify the Lessee in writing at least 30 days in advance, and must return the security deposit under Clause 5.1 to the Lessee, together with compensation for damages as required by law.",
         ),
       ],
@@ -495,33 +506,33 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "13. Return of the Leased Property",
       items: [
         item(
-          "เมื่อสัญญาสิ้นสุดลงไม่ว่าด้วยเหตุใด ผู้เช่าต้องส่งมอบทรัพย์สินที่เช่าคืนแก่ผู้ให้เช่าภายในกำหนดเวลาที่ตกลงกัน โดยมีหน้าที่ดังต่อไปนี้",
+          "เมื่อสัญญาสิ้นสุดลง ไม่ว่าด้วยเหตุใด ผู้เช่าต้องส่งมอบ ทรัพย์สินที่เช่าคืน แก่ผู้ให้เช่า ภายในกำหนดเวลาที่ตกลงกัน โดยมีหน้าที่ดังต่อไปนี้",
           "Upon termination of this agreement for any reason, the Lessee must return the leased property to the Lessor within the agreed time period, with the following obligations:",
         ),
         item(
-          "13.1 คืนกุญแจ คีย์การ์ด รีโมต และอุปกรณ์ที่เกี่ยวข้องกับทรัพย์สินที่เช่าทั้งหมดให้แก่ผู้ให้เช่า",
+          "13.1 คืนกุญแจ คีย์การ์ด รีโมต และอุปกรณ์ที่เกี่ยวข้อง กับทรัพย์สินที่เช่า ทั้งหมดให้แก่ผู้ให้เช่า",
           "13.1 Return all keys, key cards, remote controls, and equipment related to the leased property to the Lessor.",
         ),
         item(
-          "13.2 ขนย้ายทรัพย์สินส่วนตัวของผู้เช่าออกจากทรัพย์สินที่เช่าให้เรียบร้อย",
+          "13.2 ขนย้ายทรัพย์สินส่วนตัว ของผู้เช่า ออกจากทรัพย์สินที่เช่า ให้เรียบร้อย",
           "13.2 Remove all of the Lessee's personal belongings from the leased property.",
         ),
         item(
-          "13.3 ส่งมอบทรัพย์สินที่เช่าในสภาพสะอาด เรียบร้อย และอยู่ในสภาพเดียวกับวันที่รับมอบทรัพย์สิน เว้นแต่ความเสื่อมสภาพหรือการชำรุดที่เกิดจากการใช้งานตามปกติ",
+          "13.3 ส่งมอบทรัพย์สินที่เช่า ในสภาพสะอาด เรียบร้อย และอยู่ในสภาพเดียวกับ วันที่รับมอบทรัพย์สิน เว้นแต่ความเสื่อมสภาพ หรือการชำรุด ที่เกิดจากการใช้งานตามปกติ",
           "13.3 Return the leased property in a clean and orderly condition, and in the same condition as on the date of handover, except for deterioration or damage resulting from normal use.",
         ),
       ],
     },
     {
-      titleTh: "14. กฎหมายที่ใช้บังคับและการระงับข้อพิพาท",
+      titleTh: "14. กฎหมายที่ใช้บังคับ และการระงับข้อพิพาท",
       titleEn: "14. Governing Law and Dispute Resolution",
       items: [
         item(
-          "14.1 สัญญาฉบับนี้อยู่ภายใต้บังคับแห่งกฎหมายของราชอาณาจักรไทย หากเกิดข้อพิพาทหรือข้อขัดแย้งใด ๆ อันเกี่ยวเนื่องกับสัญญาฉบับนี้ คู่สัญญาตกลงที่จะเจรจาและไกล่เกลี่ยเพื่อหาข้อยุติร่วมกันก่อน หากไม่สามารถตกลงกันได้ ให้คู่สัญญาดำเนินการตามสิทธิและกระบวนการที่กฎหมายกำหนด",
+          "14.1 สัญญาฉบับนี้อยู่ภายใต้บังคับ แห่งกฎหมายของราชอาณาจักรไทย หากเกิดข้อพิพาท หรือข้อขัด แย้ง ใด ๆ อันเกี่ยวเนื่องกับ สัญญาฉบับนี้ คู่สัญญาตกลงที่จะเจรจา และไกล่เกลี่ยเพื่อหา ข้อยุติร่วมกันก่อน หากไม่สามารถตกลงกันได้ ให้คู่สัญญาดำเนินการ ตามสิทธิและกระบวนการ ที่กฎหมายกำหนด",
           "14.1 This agreement is governed by the laws of the Kingdom of Thailand. In the event of any dispute or disagreement relating to this agreement, the parties agree to first negotiate and mediate in good faith to reach a mutual resolution. If the parties are unable to reach an agreement, the parties shall proceed in accordance with their rights and the procedures provided by law.",
         ),
         item(
-          "14.2 สัญญาฉบับนี้จัดทำขึ้นเป็น 2 ฉบับ มีข้อความถูกต้องตรงกันทุกประการ คู่สัญญาทั้งสองฝ่ายได้อ่านและเข้าใจข้อความในสัญญาโดยละเอียดแล้ว เห็นชอบและยอมรับเงื่อนไขทั้งหมด จึงได้ลงลายมือชื่อไว้เป็นหลักฐานต่อหน้ากัน และคู่สัญญาแต่ละฝ่ายเก็บรักษาสัญญาไว้ฝ่ายละ 1 ฉบับ",
+          "14.2 สัญญาฉบับนี้จัดทำขึ้นเป็น 2 ฉบับ มีข้อความถูกต้อง ตรงกันทุกประการ คู่สัญญาทั้งสองฝ่าย ได้อ่านและเข้าใจข้อความ ในสัญญาโดยละเอียดแล้ว เห็นชอบ และยอมรับเงื่อนไขทั้งหมด จึงได้ลงลายมือชื่อไว้ เป็นหลักฐานต่อหน้ากัน และคู่สัญญาแต่ละฝ่าย เก็บรักษาสัญญาไว้ฝ่ายละ 1 ฉบับ",
           "14.2 This agreement is made in 2 originals, each of identical content. Both parties have read and fully understood the contents of this agreement in detail, and agree to and accept all of the conditions herein. The parties have therefore signed this agreement as evidence in each other's presence, and each party retains one original copy.",
         ),
       ],
