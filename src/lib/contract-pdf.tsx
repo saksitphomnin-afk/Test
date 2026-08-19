@@ -769,7 +769,14 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
               showEn={signShowEn}
               showTh={signShowTh}
             />
-            <SignBox en="Witness" th="พยาน" showEn={signShowEn} showTh={signShowTh} />
+            <SignBox
+              en="Witness"
+              th="พยาน"
+              nameEn={data.salesRepName}
+              nameTh={data.salesRepName}
+              showEn={signShowEn}
+              showTh={signShowTh}
+            />
           </View>
           <View style={styles.signRow}>
             <SignBox
@@ -780,7 +787,14 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
               showEn={signShowEn}
               showTh={signShowTh}
             />
-            <SignBox en="Witness" th="พยาน" showEn={signShowEn} showTh={signShowTh} />
+            <SignBox
+              en="Witness"
+              th="พยาน"
+              nameEn={data.salesRepName}
+              nameTh={data.salesRepName}
+              showEn={signShowEn}
+              showTh={signShowTh}
+            />
           </View>
         </View>
 

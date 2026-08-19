@@ -21,7 +21,10 @@ export async function GET(
   }
 
   const { id } = await params;
-  const contract = await prisma.contract.findUnique({ where: { id } });
+  const contract = await prisma.contract.findUnique({
+    where: { id },
+    include: { createdBy: { select: { name: true, fullName: true } } },
+  });
   if (!contract) {
     return new Response("Not found", { status: 404 });
   }
@@ -29,11 +32,14 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const lang = parseLang(searchParams.get("lang"));
 
-  const buffer = await renderContractPdf(
-    contract.type,
-    contract.data as ContractData,
-    lang,
-  );
+  // ชื่อเซล (คนสร้างสัญญา) — ใช้เติมช่องพยานในหน้าลงชื่อให้อัตโนมัติ ใช้ชื่อ-นามสกุลจริงถ้ามี
+  // ไม่งั้น fallback เป็นชื่อบัญชี (มักเป็นชื่อเล่น) เหมือน pattern เดียวกับใบเสร็จ/สัญญานายหน้า
+  const data: ContractData = {
+    ...(contract.data as ContractData),
+    salesRepName: contract.createdBy.fullName || contract.createdBy.name,
+  };
+
+  const buffer = await renderContractPdf(contract.type, data, lang);
 
   return new Response(new Uint8Array(buffer), {
     headers: {
