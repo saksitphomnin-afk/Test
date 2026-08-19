@@ -677,9 +677,12 @@ function ClauseBlockInterleaved({ block }: { block: Block }) {
   );
 }
 
-// ดัชนี block (0-based) ของข้อ 5, 7, 8, 10, 12 — ใช้บังคับขึ้นหน้าใหม่ก่อนข้อเหล่านี้ในโหมด
+// ดัชนี block (0-based) ของข้อ 5, 7, 8, 10, 12 — ใช้บังคับขึ้นหน้าใหม่ก่อนข้อเหล่านี้เฉพาะโหมด
 // ไทย+อังกฤษ ตามที่ผู้ใช้ระบุตำแหน่งหน้าที่ต้องการไว้ชัดเจน
 const FORCE_PAGE_BREAK_INDICES = new Set([4, 6, 7, 9, 11]);
+// ข้อ 14 (ข้อสุดท้าย) บังคับขึ้นหน้าใหม่เสมอทุกโหมดภาษา เพื่อให้ตามด้วยบล็อกลายเซ็นในหน้าเดียวกัน
+// พอดี แทนที่จะเหลือข้อ 14 ท้ายหน้าก่อนหน้าแล้วดันลายเซ็นไปหน้าใหม่ที่โล่งเกือบเปล่า
+const LAST_CLAUSE_INDEX = 13;
 
 function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang }) {
   const showTh = lang === "TH" || lang === "BOTH";
@@ -720,18 +723,21 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
         {/* โหมดไทย+อังกฤษ ข้อ 1-4: แยกเป็นหมวดต่อข้อ — อังกฤษทั้งข้อก่อน (เหมือนสัญญาอังกฤษ
             ล้วนทุกประการ) แล้วตามด้วยไทยทั้งข้อ (เหมือนสัญญาไทยล้วน) ข้อ 5 เป็นต้นไปมีข้อย่อย
             จำนวนมากและสั้น จึงสลับทีละคู่แทน (ClauseBlockInterleaved) กันไล่จับคู่ประโยคยาก
-            บังคับขึ้นหน้าใหม่ก่อนข้อ 5/7/8/10/12 ตามที่ผู้ใช้ระบุ กันเนื้อหาไล่ชนกันจนแน่นเกินไป */}
+            บังคับขึ้นหน้าใหม่ก่อนข้อ 5/7/8/10/12 ตามที่ผู้ใช้ระบุ กันเนื้อหาไล่ชนกันจนแน่นเกินไป
+            (เฉพาะโหมดไทย+อังกฤษ) ส่วนข้อ 14 บังคับขึ้นหน้าใหม่ทุกโหมด กันหน้าลายเซ็นโล่งเปล่า */}
         {blocks.map((b, idx) => {
           const isBoth = showEn && showTh;
+          const forceBreak =
+            (isBoth && FORCE_PAGE_BREAK_INDICES.has(idx)) || idx === LAST_CLAUSE_INDEX;
           if (isBoth && idx >= 4) {
             return (
-              <View key={b.titleTh} break={FORCE_PAGE_BREAK_INDICES.has(idx)}>
+              <View key={b.titleTh} break={forceBreak}>
                 <ClauseBlockInterleaved block={b} />
               </View>
             );
           }
           return (
-            <View key={b.titleTh}>
+            <View key={b.titleTh} break={forceBreak}>
               {showEn && (
                 <ClauseBlockSection
                   block={b}
