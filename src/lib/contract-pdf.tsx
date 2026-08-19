@@ -992,9 +992,14 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
           if (!termMonths || !rent) return null;
           const amount = Math.round(rent * brokerCommissionMonths(termMonths));
           return (
-            <BiText style={[styles.brokerPara, { marginBottom: 8, fontWeight: "bold" }]}>
-              {`ค่าคอมมิชชั่น ที่เจ้าของทรัพย์สินต้องชำระ (สัญญา ${termMonths} เดือน): ${bahtNumber(String(amount))} บาท`}
-            </BiText>
+            <RichText
+              style={[styles.brokerPara, { marginBottom: 8 }]}
+              segments={[
+                { text: "ค่าคอมมิชชั่นที่เจ้าของทรัพย์สินต้องชำระ: " },
+                { text: bahtNumber(String(amount)), bold: true, underline: true },
+                { text: " บาท" },
+              ]}
+            />
           );
         })()}
 
