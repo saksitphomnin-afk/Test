@@ -42,9 +42,11 @@ const styles = StyleSheet.create({
   headerLine: { textAlign: "right", marginBottom: 3 },
   clauseBlock: { marginBottom: 10 },
   clauseTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
-  // ไม่ใช้ justify — ภาษาไทยไม่มีช่องว่างระหว่างคำตามธรรมชาติ ทำให้ react-pdf
-  // ยืดช่องว่างที่มีอยู่ไม่กี่จุดจนห่างผิดปกติในบรรทัดที่มีคำน้อย
+  // ไม่ใช้ justify กับข้อความไทย — ภาษาไทยไม่มีช่องว่างระหว่างคำตามธรรมชาติ ทำให้ react-pdf
+  // ยืดช่องว่างที่มีอยู่ไม่กี่จุดจนห่างผิดปกติในบรรทัดที่มีคำน้อย ส่วนภาษาอังกฤษมีช่องว่างระหว่าง
+  // คำทุกคำอยู่แล้ว จึง justify ได้ปกติเพื่อให้ทุกบรรทัดชิดขอบขวาเท่ากัน
   para: { marginBottom: 4, textAlign: "left" },
+  paraEn: { marginBottom: 4, textAlign: "justify" },
   // signatures
   signWrap: { marginTop: 4 },
   signRow: {
@@ -629,7 +631,10 @@ function ClauseBlockSection({
         const prefix = stripped ? basePrefix + NUMBER_COMPENSATE_INDENT : basePrefix;
         return (
           <View key={i} wrap={false}>
-            <RichText style={styles.para} segments={withPrefix(prefix, glueClauseNumber(segs))} />
+            <RichText
+              style={isEnglish ? styles.paraEn : styles.para}
+              segments={withPrefix(prefix, glueClauseNumber(segs))}
+            />
           </View>
         );
       })}
@@ -661,7 +666,7 @@ function ClauseBlockInterleaved({ block }: { block: Block }) {
         return (
           <View key={i} wrap={false}>
             <RichText
-              style={styles.para}
+              style={styles.paraEn}
               segments={withPrefix(basePrefix, glueClauseNumber(it.en))}
             />
             <RichText style={styles.para} segments={withPrefix(thPrefix, glueClauseNumber(thSegs))} />
@@ -671,6 +676,10 @@ function ClauseBlockInterleaved({ block }: { block: Block }) {
     </View>
   );
 }
+
+// ดัชนี block (0-based) ของข้อ 5, 7, 8, 10, 12 — ใช้บังคับขึ้นหน้าใหม่ก่อนข้อเหล่านี้ในโหมด
+// ไทย+อังกฤษ ตามที่ผู้ใช้ระบุตำแหน่งหน้าที่ต้องการไว้ชัดเจน
+const FORCE_PAGE_BREAK_INDICES = new Set([4, 6, 7, 9, 11]);
 
 function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang }) {
   const showTh = lang === "TH" || lang === "BOTH";
@@ -710,12 +719,13 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
 
         {/* โหมดไทย+อังกฤษ ข้อ 1-4: แยกเป็นหมวดต่อข้อ — อังกฤษทั้งข้อก่อน (เหมือนสัญญาอังกฤษ
             ล้วนทุกประการ) แล้วตามด้วยไทยทั้งข้อ (เหมือนสัญญาไทยล้วน) ข้อ 5 เป็นต้นไปมีข้อย่อย
-            จำนวนมากและสั้น จึงสลับทีละคู่แทน (ClauseBlockInterleaved) กันไล่จับคู่ประโยคยาก */}
+            จำนวนมากและสั้น จึงสลับทีละคู่แทน (ClauseBlockInterleaved) กันไล่จับคู่ประโยคยาก
+            บังคับขึ้นหน้าใหม่ก่อนข้อ 5/7/8/10/12 ตามที่ผู้ใช้ระบุ กันเนื้อหาไล่ชนกันจนแน่นเกินไป */}
         {blocks.map((b, idx) => {
           const isBoth = showEn && showTh;
           if (isBoth && idx >= 4) {
             return (
-              <View key={b.titleTh}>
+              <View key={b.titleTh} break={FORCE_PAGE_BREAK_INDICES.has(idx)}>
                 <ClauseBlockInterleaved block={b} />
               </View>
             );
