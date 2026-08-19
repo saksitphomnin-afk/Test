@@ -953,7 +953,12 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
           </View>
         </View>
 
-        <BiText style={[styles.sectionTitle, { marginBottom: 3, paddingBottom: 1 }]}>
+        <BiText
+          style={[
+            styles.sectionTitle,
+            { marginBottom: 3, paddingBottom: 1, borderBottomWidth: 0 },
+          ]}
+        >
           อัตราค่าตอบแทนนายหน้า (สัญญาฉบับแรก)
         </BiText>
         <View style={[styles.brokerTableWrap, { marginBottom: 8 }]} wrap={false}>
@@ -1003,7 +1008,12 @@ function BrokerContractDocument({ data }: { data: ContractData }) {
           );
         })()}
 
-        <BiText style={[styles.sectionTitle, { marginBottom: 3, paddingBottom: 1 }]}>
+        <BiText
+          style={[
+            styles.sectionTitle,
+            { marginBottom: 3, paddingBottom: 1, borderBottomWidth: 0 },
+          ]}
+        >
           เงื่อนไข และข้อตกลง
         </BiText>
         {BROKER_CLAUSES.map((text, i) => (
