@@ -75,6 +75,7 @@ export function RoomForm({
   cancelHref = "/",
   projects = [],
   stations = [],
+  projectStations = {},
 }: {
   apiUrl: string;
   method?: "POST" | "PATCH";
@@ -84,8 +85,24 @@ export function RoomForm({
   cancelHref?: string;
   projects?: string[];
   stations?: { station: string; distanceMeters: number }[];
+  // สถานีรถไฟฟ้าที่เคยกรอกไว้ของแต่ละโครงการ (key = ชื่อโครงการเป๊ะ ๆ) — ใช้เติมให้อัตโนมัติ
+  // เมื่อเลือก/พิมพ์ชื่อโครงการที่มีอยู่แล้ว กันเซลแต่ละคนต้องพิมพ์ระยะรถไฟฟ้าซ้ำทุกครั้ง
+  projectStations?: Record<string, { station: string; distanceMeters: number }[]>;
 }) {
   const [error, setError] = useState<string | undefined>();
+  // เติมสถานีอัตโนมัติแค่ครั้งเดียวตอนยังไม่มีสถานีอยู่เลย (ห้องใหม่ที่ยังไม่กรอก หรือห้องที่แก้ไข
+  // แล้วไม่เคยมีสถานีมาก่อน) กันไปเขียนทับสถานีที่ผู้ใช้กรอก/แก้เองแล้ว
+  const [autoStations, setAutoStations] = useState(stations);
+  const [stationsVersion, setStationsVersion] = useState(0);
+
+  function handleProjectMatch(projectName: string) {
+    if (autoStations.length > 0) return;
+    const known = projectStations[projectName];
+    if (known && known.length > 0) {
+      setAutoStations(known);
+      setStationsVersion((v) => v + 1);
+    }
+  }
   const [isPending, startTransition] = useTransition();
   const [compressing, setCompressing] = useState(false);
   const [fileCount, setFileCount] = useState(0);
@@ -135,6 +152,7 @@ export function RoomForm({
             <ProjectNameField
               projects={projects}
               defaultValue={room?.projectName ?? ""}
+              onMatchExisting={handleProjectMatch}
             />
           </FormRow>
           <FormRow label="เลขห้อง" htmlFor="roomNumber" required>
@@ -271,7 +289,14 @@ export function RoomForm({
           เพิ่มสถานี BTS/MRT ที่อยู่ใกล้ พร้อมระยะห่าง (ดูจาก Google Maps) —
           ใช้กรองหา “คอนโดติดรถไฟฟ้า” ให้ลูกค้าได้
         </p>
-        <StationsField defaultStations={stations} />
+        {stationsVersion > 0 && (
+          <p className="mb-3 text-xs text-brand-600">
+            ดึงระยะรถไฟฟ้าที่เคยกรอกไว้ของโครงการนี้มาให้อัตโนมัติ — ตรวจสอบก่อนบันทึก
+          </p>
+        )}
+        {/* key เปลี่ยนตอนเติมสถานีอัตโนมัติ เพื่อบังคับให้ StationsField mount ใหม่แล้วอ่าน
+            defaultStations ก้อนใหม่ (ปกติ useState ข้างในมันจะจำค่าตั้งต้นแค่ครั้งแรกเท่านั้น) */}
+        <StationsField key={stationsVersion} defaultStations={autoStations} />
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">

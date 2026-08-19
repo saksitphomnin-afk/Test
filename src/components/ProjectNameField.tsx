@@ -9,9 +9,13 @@ import { Input } from "@/components/ui/Field";
 export function ProjectNameField({
   projects,
   defaultValue = "",
+  onMatchExisting,
 }: {
   projects: string[];
   defaultValue?: string;
+  // เรียกเมื่อชื่อโครงการตรงกับที่มีอยู่แล้วเป๊ะ ๆ (เลือกจากลิสต์ หรือพิมพ์ตรงแล้วออกจากช่อง)
+  // ใช้เติมสถานีรถไฟฟ้าที่เคยกรอกไว้ของโครงการนั้นให้อัตโนมัติ
+  onMatchExisting?: (projectName: string) => void;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [focused, setFocused] = useState(false);
@@ -35,7 +39,11 @@ export function ProjectNameField({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 150)}
+        onBlur={() => {
+          setTimeout(() => setFocused(false), 150);
+          const exact = projects.find((p) => p.toLowerCase() === query);
+          if (exact) onMatchExisting?.(exact);
+        }}
         placeholder="เช่น The Base Sukhumvit"
         autoComplete="off"
         required
@@ -54,6 +62,7 @@ export function ProjectNameField({
                   e.preventDefault();
                   setValue(p);
                   setFocused(false);
+                  onMatchExisting?.(p);
                 }}
                 className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700"
               >

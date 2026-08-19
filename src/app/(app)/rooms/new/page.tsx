@@ -1,10 +1,13 @@
 import { RoomForm } from "@/components/RoomForm";
-import { getDistinctProjectNames } from "@/lib/rooms";
+import { getDistinctProjectNames, getProjectStationsMap } from "@/lib/rooms";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewRoomPage() {
-  const projects = await getDistinctProjectNames();
+  const [projects, projectStations] = await Promise.all([
+    getDistinctProjectNames(),
+    getProjectStationsMap(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -14,7 +17,13 @@ export default async function NewRoomPage() {
           กรอกรายละเอียดห้องและอัปโหลดรูปภาพ
         </p>
       </div>
-      <RoomForm apiUrl="/api/rooms" method="POST" submitLabel="เพิ่มห้อง" projects={projects} />
+      <RoomForm
+        apiUrl="/api/rooms"
+        method="POST"
+        submitLabel="เพิ่มห้อง"
+        projects={projects}
+        projectStations={projectStations}
+      />
     </div>
   );
 }
