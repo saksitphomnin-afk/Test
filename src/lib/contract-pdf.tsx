@@ -48,19 +48,14 @@ const styles = StyleSheet.create({
   para: { marginBottom: 4, textAlign: "left" },
   paraEn: { marginBottom: 4, textAlign: "justify" },
   // signatures
-  signWrap: { marginTop: 40 },
+  signWrap: { marginTop: 4 },
   signRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 30,
+    marginTop: 10,
   },
   signBox: { width: "47%" },
   signLine: { flexDirection: "row", alignItems: "flex-end", marginBottom: 6 },
-  signDateLine: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginTop: 16,
-  },
   signDash: {
     flex: 1,
     borderBottomWidth: 1,
@@ -582,10 +577,6 @@ function SignBox({
       {showTh && nameTh && (
         <BiText style={styles.signName}>{nameTh}</BiText>
       )}
-      <View style={styles.signDateLine}>
-        <BiText>{showTh && !showEn ? "วันที่" : "Date"}</BiText>
-        <View style={styles.signDash} />
-      </View>
     </View>
   );
 }
