@@ -477,8 +477,16 @@ function leaseBlocks(d: ContractData): Block[] {
       titleEn: "12. Termination of Agreement",
       items: [
         item(
-          "หากฝ่ายใดประสงค์จะเลิกสัญญาก่อนครบกำหนด ต้องแจ้งอีกฝ่ายเป็นลายลักษณ์อักษรล่วงหน้าไม่น้อยกว่า 30 วัน และการคืนเงินประกันหรือการชดใช้ค่าเสียหายให้เป็นไปตามเงื่อนไขของสัญญา และกฎหมาย",
-          "If either party wishes to terminate this agreement before its expiration, that party must give the other party at least 30 days' prior written notice, and the return of the security deposit or compensation for damages shall be in accordance with the terms of this agreement and the law.",
+          "12.1 หากผู้เช่าประสงค์จะบอกเลิกสัญญาเช่าก่อนครบกำหนด โดยมิได้เกิดจากเหตุที่ทรัพย์สินไม่สามารถใช้เพื่อการอยู่อาศัยได้ตามปกติ เช่น ภัยพิบัติ แผ่นดินไหว หรือเหตุเพลิงไหม้ และมิได้เกิดจากความผิดของผู้ให้เช่า ให้ถือเป็นการบอกเลิกสัญญาก่อนครบกำหนดโดยผู้เช่า และผู้ให้เช่าย่อมมีสิทธิริบเงินประกันตามข้อ 5.1 ทั้งหมดทันที",
+          "12.1 If the Lessee wishes to terminate this lease agreement before its expiration, and such termination is not due to the leased property being unable to be used for normal residential purposes (such as a natural disaster, earthquake, or fire) and is not due to the Lessor's fault, this shall be deemed early termination by the Lessee, and the Lessor shall have the right to immediately forfeit the entire security deposit under Clause 5.1.",
+        ),
+        item(
+          "12.2 หากผู้เช่าฝ่าฝืนหรือไม่ปฏิบัติตามเงื่อนไขที่กำหนดไว้ในสัญญาเช่า ผู้ให้เช่ามีสิทธิแจ้งเตือนผู้เช่าเป็นลายลักษณ์อักษรจำนวน 2 ครั้ง หากภายหลังการแจ้งเตือนครั้งที่ 2 ผู้เช่ายังคงไม่ปฏิบัติตามเงื่อนไขดังกล่าว ผู้ให้เช่ามีสิทธิบอกเลิกสัญญาและริบเงินประกันตามข้อ 5.1 ทั้งหมดทันที",
+          "12.2 If the Lessee violates or fails to comply with the conditions set out in this lease agreement, the Lessor has the right to issue the Lessee two (2) written warnings. If, after the second warning, the Lessee still fails to comply with such conditions, the Lessor has the right to terminate this agreement and immediately forfeit the entire security deposit under Clause 5.1.",
+        ),
+        item(
+          "12.3 หากผู้ให้เช่าประสงค์จะบอกเลิกสัญญาก่อนครบกำหนด ผู้ให้เช่าต้องแจ้งให้ผู้เช่าทราบเป็นลายลักษณ์อักษรล่วงหน้าไม่น้อยกว่า 30 วัน และต้องคืนเงินประกันตามข้อ 5.1 ให้แก่ผู้เช่า พร้อมชดใช้ค่าเสียหายตามที่กฎหมายกำหนด",
+          "12.3 If the Lessor wishes to terminate this agreement before its expiration, the Lessor must notify the Lessee in writing at least 30 days in advance, and must return the security deposit under Clause 5.1 to the Lessee, together with compensation for damages as required by law.",
         ),
       ],
     },
