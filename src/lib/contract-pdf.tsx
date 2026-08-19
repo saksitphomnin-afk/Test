@@ -787,11 +787,10 @@ function LeaseContractDocument({ data, lang }: { data: ContractData; lang: Lang 
               showEn={signShowEn}
               showTh={signShowTh}
             />
+            {/* พยานคนที่ 2 เว้นชื่อว่างไว้ตามที่ผู้ใช้ระบุ — ใส่ชื่อเซลไว้แค่พยานคนแรกพอ */}
             <SignBox
               en="Witness"
               th="พยาน"
-              nameEn={data.salesRepName}
-              nameTh={data.salesRepName}
               showEn={signShowEn}
               showTh={signShowTh}
             />
