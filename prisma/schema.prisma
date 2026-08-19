@@ -16,9 +16,9 @@ enum Role {
 
 enum RoomStatus {
   AVAILABLE // ว่าง
-  RESERVED  // จอง
-  RENTED    // เช่าแล้ว
-  SOLD      // ขายแล้ว
+  RESERVED // จอง
+  RENTED // เช่าแล้ว
+  SOLD // ขายแล้ว
 }
 
 enum ListingType {
@@ -34,9 +34,9 @@ enum ContractType {
 }
 
 enum CustomerStatus {
-  NEW       // ใหม่
+  NEW // ใหม่
   CONTACTED // กำลังคุย
-  CLOSED    // ปิดการขาย
+  CLOSED // ปิดการขาย
   CANCELLED // ยกเลิก
 }
 
@@ -53,10 +53,11 @@ model User {
   customerPrefix String?
   customerSeq    Int     @default(0)
 
-  createdRooms     Room[]      @relation("RoomCreatedBy")
-  remarkLogs       RemarkLog[]
-  createdContracts Contract[]
-  customers        Customer[]  @relation("CustomerCreatedBy")
+  createdRooms      Room[]             @relation("RoomCreatedBy")
+  remarkLogs        RemarkLog[]
+  createdContracts  Contract[]
+  customers         Customer[]         @relation("CustomerCreatedBy")
+  uploadedTemplates ContractTemplate[] @relation("TemplateUploadedBy")
 }
 
 model Room {
@@ -131,14 +132,14 @@ model RemarkLog {
 
 // ลูกค้า/Enquiry — เป็นของแต่ละคนในทีม (member เห็นเฉพาะของตัวเอง, admin เห็นทั้งหมด)
 model Customer {
-  id        String         @id @default(cuid())
-  code      String?        @unique // รหัสรันอัตโนมัติ เช่น SP-0001
-  name      String // ชื่อลูกค้า
-  phone     String // เบอร์โทร
-  lineId    String? // Line ID
-  budget    Int? // งบสูงสุด (บาท)
-  note      String? // ความต้องการ/รายละเอียด
-  status    CustomerStatus @default(NEW)
+  id     String         @id @default(cuid())
+  code   String?        @unique // รหัสรันอัตโนมัติ เช่น SP-0001
+  name   String // ชื่อลูกค้า
+  phone  String // เบอร์โทร
+  lineId String? // Line ID
+  budget Int? // งบสูงสุด (บาท)
+  note   String? // ความต้องการ/รายละเอียด
+  status CustomerStatus @default(NEW)
 
   createdById String
   createdBy   User   @relation("CustomerCreatedBy", fields: [createdById], references: [id])
@@ -153,11 +154,11 @@ model Customer {
 }
 
 model Contract {
-  id          String       @id @default(cuid())
-  roomId      String
-  room        Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  type        ContractType
-  data        Json // ค่าฟิลด์ทั้งหมดในฟอร์มสัญญา
+  id     String       @id @default(cuid())
+  roomId String
+  room   Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  type   ContractType
+  data   Json // ค่าฟิลด์ทั้งหมดในฟอร์มสัญญา
 
   // Phase 2: ผูกกับลูกค้า (Enquiry) + เงินจอง
   customerId    String?
@@ -167,9 +168,9 @@ model Contract {
   slipUrl       String? // สลิปการโอนเงินจอง
 
   createdById String
-  createdBy   User         @relation(fields: [createdById], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   furnitureItems FurnitureItem[]
 
@@ -201,4 +202,19 @@ model FurnitureItem {
   createdAt  DateTime          @default(now())
 
   @@index([contractId])
+}
+
+// คลังไฟล์แบบฟอร์มสัญญาให้ทีมดาวน์โหลด (เช่น ตัวอย่างสัญญาภาษาไทย/อังกฤษ) — แอดมินอัปโหลด/ลบได้
+// ทุกคนในทีมดูและดาวน์โหลดได้
+model ContractTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  uploadedById String
+  uploadedBy   User   @relation("TemplateUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([sortOrder])
 }

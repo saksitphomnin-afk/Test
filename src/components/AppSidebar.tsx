@@ -7,6 +7,7 @@ import {
   Building2,
   SquarePlus,
   Users,
+  FolderOpen,
   ShieldCheck,
   ChevronsLeft,
   ChevronsRight,
@@ -20,6 +21,7 @@ const BASE_LINKS = [
   { href: "/", label: "Condo", icon: Building2 },
   { href: "/rooms/new", label: "เพิ่มห้อง", icon: SquarePlus },
   { href: "/customers", label: "Enquiry", icon: Users },
+  { href: "/templates", label: "รวมไฟล์สัญญา", icon: FolderOpen },
 ];
 
 export function AppSidebar({

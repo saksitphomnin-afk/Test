@@ -8,6 +8,10 @@ export function isValidImage(file: File): boolean {
   return file.size > 0 && ACCEPTED.includes(file.type);
 }
 
+export function isValidTemplateFile(file: File): boolean {
+  return file.size > 0 && file.type === "application/pdf";
+}
+
 function makeName(file: File) {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   return `${Date.now()}-${crypto.randomUUID()}.${ext}`;
@@ -100,5 +104,67 @@ export async function getImageBytes(url: string): Promise<Buffer | null> {
   } catch (err) {
     console.error(`[getImageBytes] failed to read ${url}:`, err);
     return null;
+  }
+}
+
+// คลังไฟล์แบบฟอร์มสัญญา (PDF) — backend เดียวกับ uploadImage แต่แยก prefix/store ไม่ให้ปนกับรูปห้อง
+const TEMPLATE_NETLIFY_STORE = "contract-templates";
+
+export async function uploadTemplateFile(file: File): Promise<string> {
+  const filename = makeName(file);
+
+  if (onVercelBlob()) {
+    try {
+      const { put } = await import("@vercel/blob");
+      const blob = await put(`templates/${filename}`, file, {
+        access: "public",
+        contentType: file.type || "application/pdf",
+      });
+      return blob.url;
+    } catch (err) {
+      console.error("[storage] Vercel Blob upload failed:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`อัปโหลดไฟล์ไม่สำเร็จ: ${message}`);
+    }
+  }
+
+  if (onNetlify()) {
+    try {
+      const { getStore } = await import("@netlify/blobs");
+      const store = getStore(TEMPLATE_NETLIFY_STORE);
+      const bytes = await file.arrayBuffer();
+      await store.set(filename, bytes, {
+        metadata: { contentType: file.type || "application/pdf" },
+      });
+      return `/api/templates/${filename}`;
+    } catch (err) {
+      console.error("[storage] Netlify Blobs upload failed:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`อัปโหลดไฟล์ไม่สำเร็จ: ${message}`);
+    }
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const dir = path.join(process.cwd(), "public", "uploads", "templates");
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, filename), bytes);
+  return `/uploads/templates/${filename}`;
+}
+
+/** ลบไฟล์แบบฟอร์มสัญญาตาม url ที่เก็บไว้ (ทำงานเงียบ ๆ ไม่ throw หากลบไม่ได้) */
+export async function deleteTemplateFile(url: string): Promise<void> {
+  try {
+    if (url.startsWith("/uploads/templates/")) {
+      await unlink(path.join(process.cwd(), "public", url));
+    } else if (url.startsWith("/api/templates/")) {
+      const { getStore } = await import("@netlify/blobs");
+      const key = url.replace("/api/templates/", "");
+      await getStore(TEMPLATE_NETLIFY_STORE).delete(key);
+    } else if (url.includes("blob.vercel-storage.com")) {
+      const { del } = await import("@vercel/blob");
+      await del(url);
+    }
+  } catch {
+    // เพิกเฉยหากไฟล์ไม่มีอยู่แล้ว
   }
 }
