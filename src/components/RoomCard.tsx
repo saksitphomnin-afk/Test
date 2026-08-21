@@ -57,7 +57,7 @@ export function RoomCard({
             {LISTING_META[room.listingType].label}
           </span>
           {room.saleType && (
-            <span className="rounded-full bg-brand-500/95 px-2 py-0.5 text-[11px] font-medium text-brand-900 shadow-sm ring-1 ring-inset ring-brand-700/20">
+            <span className="rounded-full bg-brand-600/95 px-2 py-0.5 text-[11px] font-medium text-white shadow-sm ring-1 ring-inset ring-brand-700/20">
               {room.saleType}
             </span>
           )}
