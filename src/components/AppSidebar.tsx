@@ -81,7 +81,7 @@ export function AppSidebar({
                 collapsed ? "justify-center" : ""
               } ${
                 active
-                  ? "bg-emerald-50 text-emerald-700"
+                  ? "bg-brand-50 text-brand-700"
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               }`}
             >
