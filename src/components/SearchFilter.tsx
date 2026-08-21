@@ -122,7 +122,7 @@ export function SearchFilter({
         <button
           type="submit"
           disabled={isPending}
-          className="absolute inset-y-1.5 right-1.5 inline-flex items-center rounded-full bg-brand-600 px-5 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
+          className="absolute inset-y-1.5 right-1.5 inline-flex items-center rounded-full bg-brand-500 px-5 text-sm font-medium text-brand-900 transition hover:bg-brand-400 disabled:opacity-60"
         >
           ค้นหา
         </button>
@@ -166,7 +166,7 @@ export function SearchFilter({
             <FilterIcon />
             ตัวกรอง
             {activeCount > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-xs font-semibold text-white">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 text-xs font-semibold text-brand-900">
                 {activeCount}
               </span>
             )}

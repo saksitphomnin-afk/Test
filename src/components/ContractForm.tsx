@@ -270,7 +270,7 @@ export function ContractForm({
             className={cn(
               "rounded-lg px-4 py-2 text-sm font-medium transition",
               type === t
-                ? "bg-brand-600 text-white"
+                ? "bg-brand-500 text-brand-900"
                 : "text-gray-600 hover:bg-gray-100",
             )}
           >
